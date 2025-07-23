@@ -1,0 +1,4196 @@
+{UTF-8}
+Increase in RT policy 0=
+	IF THEN ELSE(Time<2031, "already determind retirement age 2020-2030"*yearly trigger \
+		, IF THEN ELSE("RT Policy 0: Following current trend Stock"<max retirement age, current retirement trend\
+		*yearly trigger , 0 ) )
+	~	Dmnl
+	~		|
+
+Retirement age policy=
+	IF THEN ELSE(Policy Switch Retirement age=0, "RT Policy 0: Following current trend" \
+		, IF THEN ELSE ( Policy Switch Retirement age = 1 , "RT Policy 1: ASAP to 75" , IF THEN ELSE\
+		 ( Policy Switch Retirement age
+	 = 2 , "RT Policy 2: ASAP to 75 with 6 months increase" , IF THEN ELSE( Policy Switch Retirement age\
+		 = 3 , "RT Policy 3: Kunduz proposal"
+	 , IF THEN ELSE(Policy Switch Retirement age
+	=4, "RT Policy 4: Kunduz proposal with 6 months increase" , 0 ) )
+	 )
+	 )
+	)
+	~	Year
+	~		|
+
+current retirement trend=
+	0.0333
+	~	Year
+	~		|
+
+"RT Policy 0: Following current trend Stock"= INTEG (
+	Increase in RT policy 0,
+		RT at 2020)
+	~	Year
+	~		|
+
+"W Policy 3: Wages dependant on LB and Exo. trend"[s industry]=
+	"W Policy 2: Wages dependant on labour balance"[s industry]*distribution wages scenario coefficient\
+		+"W Policy 1: Wages dependant on exogenous trend"
+	[s industry]*(1-distribution wages scenario coefficient) ~~|
+"W Policy 3: Wages dependant on LB and Exo. trend"[s service]=
+	"W Policy 2: Wages dependant on labour balance"[s service]*distribution wages scenario coefficient\
+		+"W Policy 1: Wages dependant on exogenous trend"
+[s service]*(1-distribution wages scenario coefficient)
+	~	Euro/(FTE*Month*Year)
+	~		|
+
+"RT Policy 0: Following current trend"=
+	"RT Policy 0: Following current trend Stock"
+	~	Year
+	~		|
+
+increase in GDP[sectors]=
+	IF THEN ELSE(Time<=2024, "fixed GDP 2020-2024"*"Init percentage GDP Industry/Service"\
+		[sectors], 
+	IF THEN ELSE(Scenario Switch GDP scenario's=1, GDP Scenario 1 exogenous gap[sectors]\
+		 , IF THEN ELSE
+	(Scenario Switch GDP scenario's
+	=2, "GDP Scenario 2: exogenous trend (% times GDP)"[sectors], IF THEN ELSE(Scenario Switch GDP scenario's\
+		=3, "GDP Scenario 3: gap above GDP"[sectors] , 0 ) ) 
+	) )
+	~	Euro/(Year*Year)
+	~		|
+
+GDP Scenario 1 exogenous gap[s industry]=
+	8e+09 ~~|
+GDP Scenario 1 exogenous gap[s service]=
+	2.58995e+10
+	~	Euro/(Year*Year)
+	~		|
+
+Total GDP=
+	SUM(GDP[sectors!])
+	~	Euro/Year
+	~		|
+
+Total potential GDP=
+	SUM(potential GDP[sectors!])
+	~	Euro/Year
+	~		|
+
+GDP[sectors]=
+	total workforce in FTE[sectors]*Productivity per sector[sectors]*months per year
+	~	Euro/Year
+	~		|
+
+init potential GDP per sector[sectors]=
+	init potential GDP*"Init percentage GDP Industry/Service"[sectors]
+	~	Euro/Year
+	~		|
+
+increase in productivity in service[s service]=
+	increase in wages[s service]*wages on productivity coefficient+increase in human capital
+	[s service]*human capital on productivity coefficient
+	~	Euro/(FTE*Month)/Year
+	~		|
+
+"fixed GDP 2020-2024"= WITH LOOKUP (
+	Time,
+		               ([(2020,-6e+09)-(2070,6e+10)],(2020,5.2656e+10),(2021,5.2656e+10),(2021.01\
+		,4.4642e+10),(2022,4.4642e+10
+		),(2022.01,-5.599e+09),(2023,-5.599e+09),(2023.01,1.0059e+10),(2024,1.0059e+10),(2024.01\
+		,0),(2025,0),(2025.01,0),(2070,0
+		) ))
+	~	Euro/(Year*Year)
+	~		|
+
+increase in productivity in industry[s industry]=
+	Capital[s industry]*capital on productivity coefficient+increase in technology[s industry\
+		]*technology on productivity coefficient
+	~	Euro/(FTE*Month)/Year
+	~		|
+
+"W Policy 2: Wages dependant on labour balance"[sectors]=
+	("Need for labour - relative difference between potential and actual workforce"[sectors\
+		]-coefficient to increase the relative effect between sectors
+	)*labour balance and wages coefficient
+	~	Euro/(FTE*Month*Year)
+	~		|
+
+total workforce in person=
+	SUM(total workforce per sector in person[sectors!])
+	~	person
+	~		|
+
+Labour dependency ratio=
+	(Total population-total workforce in person)/total workforce in person
+	~	Dmnl
+	~		|
+
+"increase in potential GDP by % of GDP"=
+	0.02
+	~	1/Year
+	~		|
+
+"GDP Scenario 2: exogenous trend (% times GDP)"[sectors]=
+	"increase in potential GDP by % of GDP"*GDP[sectors]
+	~	Euro/(Year*Year)
+	~		|
+
+dynamic female percentage per sector correction in times of labour surplus[s industry\
+		,female working population]=
+	IF THEN ELSE(Need for labour Industry<1, 0 , IF THEN ELSE(Need for labour Service>1,\
+		 dynamic female percentage per sector per age[female working population,s industry]\
+		 , 1 ) ) ~~|
+dynamic female percentage per sector correction in times of labour surplus[s service,\
+		female working population]=
+	IF THEN ELSE(Need for labour Service<1, 0 , IF THEN ELSE(Need for labour Industry>1,\
+		 dynamic female percentage per sector per age[female working population,s service] \
+		, 1 ) )
+	~	Dmnl
+	~		|
+
+hiring female[female working population,sectors]=
+	MAX(0,
+	      dynamic female percentage per sector correction in times of labour surplus[sectors\
+		,female working population]
+	      * "Preference for workers - relative difference between wages in sectors"[sectors\
+		]
+	      * (female potential hiring workforce[female working population] / average hiring time for new workforce\
+		)
+	    )
+	~	person/Year
+	~		|
+
+hiring female per sector[sectors]=
+	SUM(hiring female[female working population!,sectors])
+	~	person/Year
+	~		|
+
+firing female[female working population,sectors]=
+	MAX(Female Workforce[female working population,sectors]/average time working at same job\
+		[sectors],female firing due to decrease in labour participation when getting older[\
+		female working population,sectors]/delay factor of firing due to decrease in labour participation when getting older\
+		)
+	~	person/Year
+	~		|
+
+firing male[male working population,sectors]=
+	MAX(Male workforce[male working population,sectors]/average time working at same job\
+		[sectors],male firing due to decrease in labour participation when getting older[male working population\
+		,sectors]/delay factor of firing due to decrease in labour participation when getting older\
+		)
+	~	person/Year
+	~		|
+
+dynamic percentage female workforce per sector[sectors]=
+	total female workforce per sector[sectors]/total female workforce
+	~	Dmnl
+	~		|
+
+dynamic percentage male workforce per sector[sectors]=
+	total male workforce per sector[sectors]/total male workforce
+	~	Dmnl
+	~		|
+
+Total labour supply in FTE[sectors]=
+	total Average FTE per female*SUM(Available Female labour supply per age[female all!]\
+		)*dynamic percentage female workforce per sector[sectors]+total Average FTE per male\
+		*SUM(Available Male labour supply per age
+	[male working population!])*dynamic percentage male workforce per sector[sectors]
+	~	FTE
+	~		|
+
+hiring male[male working population,sectors]=
+	MAX(0,
+	      dynamic male percentage per sector correction in times of labour surplus[sectors\
+		, male working population]
+	      * "Preference for workers - relative difference between wages in sectors"[sectors\
+		]
+	      * (male potential hiring workforce[male working population] / average hiring time for new workforce\
+		)
+	    )
+	~	person/Year
+	~		|
+
+hiring male per sector[sectors]=
+	SUM(hiring male[male working population!,sectors])
+	~	person/Year
+	~		|
+
+Labour balance[sectors]=
+	Total labour supply in FTE[sectors]-labour demand per sector[sectors]
+	~	FTE
+	~		|
+
+"male relative change working population - deaths and migration"[male working population\
+		,sectors]=
+	(male deaths[male working population]+male emigration number[male working population\
+		])/Male population[male working population
+	]
+	~	1/Year
+	~		|
+
+increase in wages[sectors]=
+	IF THEN ELSE(Policy Switch Wages scenario's=1, "W Policy 1: Wages dependant on exogenous trend"\
+		[sectors] , IF THEN ELSE
+	(Policy Switch Wages scenario's=2, "W Policy 2: Wages dependant on labour balance"[sectors\
+		] , IF THEN ELSE(Policy Switch Wages scenario's
+	=3, "W Policy 3: Wages dependant on LB and Exo. trend"[sectors] , -1000 ) ) )
+	~	Euro/(FTE*Month*Year)
+	~		|
+
+dynamic male percentage per sector correction in times of labour surplus[s industry,male working population\
+		]=
+	IF THEN ELSE(Need for labour Industry<1, 0 , IF THEN ELSE(Need for labour Service>1,\
+		 dynamic male percentage per sector per age[male working population,s industry] , 1\
+		 ) ) ~~|
+dynamic male percentage per sector correction in times of labour surplus[s service,male working population\
+		]=
+	IF THEN ELSE(Need for labour Service<1, 0 , IF THEN ELSE(Need for labour Industry>1,\
+		 dynamic male percentage per sector per age[male working population,s service] , 1 \
+		) )
+	~	Dmnl
+	~		|
+
+Need for labour Service=
+	SUM("Need for labour - relative difference between potential and actual workforce"[s service\
+		!])
+	~	Dmnl
+	~		|
+
+coefficient to increase the relative effect between sectors=
+	0.85
+	~	Dmnl
+	~		|
+
+male deaths and net migration in workforce[male working population,sectors]=
+	MAX(0,"male relative change working population - deaths and migration"[male working population\
+		,sectors]* Male workforce
+	[male working population,sectors])
+	~	person/Year
+	~		|
+
+male firing due to decrease in labour participation when getting older[male working population\
+		,sectors]=
+	MAX(0,Male workforce[male working population,sectors]*Difference between theoretical and actual labour participation for males
+	[male working population])
+	~	person
+	~		|
+
+Need for labour Industry=
+	SUM("Need for labour - relative difference between potential and actual workforce"[s industry\
+		!])
+	~	Dmnl
+	~		|
+
+female firing due to decrease in labour participation when getting older[female working population\
+		,sectors]=
+	MAX(0,Female Workforce[female working population,sectors]*Difference between theoretical and actual labour participation for females
+	[female working population])
+	~	person
+	~		|
+
+Average wages per sector=
+	Sum of wages in sectors/Number of sectors
+	~	Euro/(FTE*Month)
+	~		|
+
+firing per sector[sectors]=
+	SUM (firing female[female working population!,sectors])+SUM (firing male[male working population\
+		!,sectors])
+	~	person/Year
+	~		|
+
+Available Female labour supply per age[female all]=
+	Female population[female all]*Female Labour Participation per age[female all]
+	~	person
+	~		|
+
+"Preference for workers - relative difference between wages in sectors"[s industry]=
+	1+(Wages in Industry[s industry]-Average wages per sector)/Sum of wages in sectors ~~|
+"Preference for workers - relative difference between wages in sectors"[s service]=
+	1+(Wages in Service[s service]-Average wages per sector)/Sum of wages in sectors
+	~	Dmnl
+	~		|
+
+Actual female labour participation per age[female working population]=
+	Female workforce per age[female working population]/Female population[female working population\
+		]
+	~	Dmnl
+	~		|
+
+Actual male labour participation per age[male working population]=
+	Male workforce per age[male working population]/Male population[male working population\
+		]
+	~	Dmnl
+	~		|
+
+Number of sectors=
+	2
+	~	Dmnl
+	~		|
+
+hiring per sector[sectors]=
+	SUM( hiring female[female working population!,sectors])+SUM( hiring male[male working population\
+		!,sectors])
+	~	person/Year
+	~		|
+
+Sum of wages in sectors=
+	SUM(Wages[sectors!])
+	~	Euro/(FTE*Month)
+	~		|
+
+Difference between theoretical and actual labour participation for females[female working population\
+		]=
+	MAX(0, Actual female labour participation per age[female working population]-Female Labour Participation per age\
+		[female working population])
+	~	Dmnl
+	~		|
+
+Available Male labour supply per age[male all]=
+	Male population[male all]*Male Labour Participation per age[male all]
+	~	person
+	~		|
+
+total Average FTE per male=
+	SUM(Male FTE per age[male all!]*Male population[male all!])/SUM(Male population[male all\
+		!])
+	~	FTE/person
+	~		|
+
+total workforce per sector[sectors]=
+	total male workforce per sector[sectors]*total Average FTE per male+total female workforce per sector\
+		[sectors]*total Average FTE per female
+	~	FTE
+	~		|
+
+Male workforce per age[male working population]=
+	SUM(Male workforce[male working population,sectors!])
+	~	person
+	~		|
+
+female emigration number[female all]=
+	lookup female emigration(female age groups[female all])
+	~	person/Year
+	~		|
+
+lookup female emigration(
+	[(0,0)-(125,4500)],(0,609),(4.9,609),(5,516),(9.9,516),(10,327),(14.9,327),(15,500),\
+		(19.9,500),(20,4223),(24.9,4223),(25,3346),(29.9,3346),(30,1884),(34.9,1884),(35,1079\
+		),(39.9,1079),(40,700),(44.9,700),(45,538),(49.9,538),(50,342),(70,342),(75,0),(125\
+		,0))
+	~	person/Year
+	~		|
+
+total workforce in FTE[sectors]=
+	total female workforce per sector[sectors]*total Average FTE per female+total male workforce per sector\
+		[sectors]*total Average FTE per male
+	~	FTE
+	~		|
+
+Difference between theoretical and actual labour participation for males[male working population\
+		]=
+	MAX(0, Actual male labour participation per age[male working population]-Male Labour Participation per age\
+		[male working population])
+	~	Dmnl
+	~		|
+
+"female relative change working population - deaths and migration"[female working population\
+		,sectors]=
+	(female deaths[female working population]+female emigration number[female working population\
+		])/Female population[female working population
+	]
+	~	1/Year
+	~		|
+
+lookup male emigration(
+	[(0,0)-(125,4000)],(0,642),(4.9,642),(5,544),(9.9,544),(10,329),(14.9,329),(15,465),\
+		(19.9,465),(20,3202),(24.9,3202),(25,3547),(29.9,3547),(30,2459),(34.9,2459),(35,1677\
+		),(39.9,1677),(40,1178),(44.9,1178),(45,846),(49.9,846),(50,490),(70,490),(75,0),(125\
+		,0))
+	~	person/Year
+	~		|
+
+female percentage of total workforce=
+	SUM(Female Workforce[female working population!,sectors!])/SUM(total workforce per sector in person\
+		[sectors!])
+	~	Dmnl
+	~		|
+
+male emigration number[male all]=
+	lookup male emigration(male age groups[male all])
+	~	person/Year
+	~		|
+
+male percentage of total workforce=
+	SUM(Male workforce[male working population!,sectors!])/SUM(total workforce per sector in person\
+		[sectors!])
+	~	Dmnl
+	~		|
+
+delay factor of firing due to decrease in labour participation when getting older=
+	0.01
+	~	Year
+	~		|
+
+Female workforce per age[female working population]=
+	SUM(Female Workforce[female working population,sectors!])
+	~	person
+	~		|
+
+total Average FTE per female=
+	SUM(Female FTE per age[female all!]*Female population[female all!])/SUM(Female population\
+		[female all!])
+	~	FTE/person
+	~		|
+
+"M Policy 5: Migration ouflow male"[male all]=
+	IF THEN ELSE(Total labour balance>=0, ((Total labour balance/total Average FTE per male\
+		)*labour balance on migration coefficient)*lookup factors net migration per age male
+	(male age groups[male all])/delay factor adapting migration policy , 0 )
+	~	person/(Year*Year)
+	~		|
+
+"M Policy 5: Migration inflow male"[male all]=
+	IF THEN ELSE(Total labour balance<0, ((-Total labour balance/total Average FTE per male\
+		)*labour balance on migration coefficient)*lookup factors net migration per age male
+	(male age groups[male all])/delay factor adapting migration policy
+	 , 0 )
+	~	person/(Year*Year)
+	~		|
+
+male working pop previous cohort:
+	(mage15-mage94)  -> male working pop all but youngest
+	~	
+	~		|
+
+male death rate per age[male all]=
+	IF THEN ELSE(Scenario Switch Healthcare scenario's=1, male lookup mortality rate(male age groups\
+		[male all])-Healthcare level
+	*Influence of Healthcare level on death rate 1
+	(male age groups
+	[male all]) , male lookup mortality rate(male age groups[male all])-Healthcare level
+	*Influence of Healthcare level on death rate 2
+	(male age groups
+	[male all]) )
+	~	1/Year
+	~		|
+
+female working pop previous cohort:
+	fage15, fage16, fage17, fage18, fage19, fage20, fage21, fage22, fage23, fage24, fage25\
+		, fage26, fage27, fage28, fage29, fage30, fage31, fage32, fage33, fage34, fage35, fage36\
+		, fage37, fage38, fage39, fage40, fage41, fage42, fage43, fage44, fage45, fage46, fage47\
+		, fage48, fage49, fage50, fage51, fage52, fage53, fage54, fage55, fage56, fage57, fage58\
+		, fage59, fage60, fage61, fage62, fage63, fage64, fage65, fage66, fage67, fage68, fage69\
+		, fage70, fage71, fage72, fage73, fage74, fage75, fage76, fage77, fage78, fage79, fage80\
+		, fage81, fage82, fage83, fage84, fage85, fage86, fage87, fage88, fage89, fage90, fage91\
+		, fage92, fage93, fage94  -> female working pop all but youngest
+	~	
+	~		|
+
+female working pop all but youngest:
+	(fage16-fage95)
+	~	
+	~		|
+
+male working pop all but youngest:
+	(mage16-mage95)
+	~	
+	~		|
+
+increase in RT Policy 1=
+	IF THEN ELSE(Time<2031, "already determind retirement age 2020-2030"*yearly trigger \
+		, IF THEN ELSE("RT Policy 1: ASAP to 75 Stock"
+	<max retirement age, "3 months per year"*yearly trigger , 0 ) )
+	~	Dmnl
+	~		|
+
+Scenario Switch Healthcare scenario's=
+	1
+	~	Dmnl
+	~	1 = peek at age of 95.
+		2 = peek at age of 80.
+	|
+
+total weighed male deaths=
+	SUM(weighed male deahts per age[male all!])
+	~	person
+	~		|
+
+weighed female deahts per age[female all]=
+	female deaths[female all]*female age groups[female all]
+	~	person
+	~		|
+
+male life epectancy=
+	total weighed male deaths/total male deaths per year
+	~	Year
+	~		|
+
+increase in RT policy 2=
+	IF THEN ELSE(Time<2031, "already determind retirement age 2020-2030"*yearly trigger \
+		,
+	IF THEN ELSE("RT Policy 2: ASAP to 75 with 6 months increase Stock"<max retirement age\
+		, "6 months per year"*yearly trigger
+	 , 0 ) )
+	~	Dmnl
+	~		|
+
+female life expectancy=
+	total weighed female deaths/total female deaths per year
+	~	Year
+	~		|
+
+total workforce per sector in person[sectors]=
+	total female workforce per sector[sectors]+total male workforce per sector[sectors]
+	~	person
+	~		|
+
+female Unemployment rate=
+	(total female available workforce-total female workforce)/total female available workforce
+	~	Dmnl
+	~		|
+
+Influence of Healthcare level on death rate 2(
+	[(0,0)-(125,0.2)],(0,0),(50,0),(80,0.1),(110,0),(125,0))
+	~	1/Year
+	~		|
+
+total weighed female deaths=
+	SUM(weighed female deahts per age[female all!])
+	~	person
+	~		|
+
+female death rate per age[female all]=
+	IF THEN ELSE(Scenario Switch Healthcare scenario's=1, female lookup mortality rate(female age groups\
+		[female all])-Healthcare level
+	*Influence of Healthcare level on death rate 1
+	(female age groups
+	[female all]) , female lookup mortality rate(female age groups[female all])-Healthcare level
+	*Influence of Healthcare level on death rate 2
+	(female age groups
+	[female all]) )
+	~	1/Year
+	~		|
+
+weighed male deahts per age[male all]=
+	male deaths[male all]*male age groups[male all]
+	~	person
+	~		|
+
+test firing=
+	IF THEN ELSE( test delta difference>1 , test workforce/test time working at same job\
+		 , (test total workforce-test labour demand)/test delay of firing when there is labour surplus
+	)
+	~	1/Year
+	~		|
+
+increase in RT policy 3=
+	IF THEN ELSE(Time<2031, "already determind retirement age 2020-2030"*yearly trigger \
+		, IF THEN ELSE(target age Kunduz proposal
+	>"RT Policy 3: Kunduz proposal Stock", IF THEN ELSE(target age Kunduz proposal-"RT Policy 3: Kunduz proposal Stock"
+	>"3 months per year", "3 months per year"*yearly trigger , 0
+	 ) , 0 ) )
+	~	Dmnl
+	~		|
+
+increase in RT policy 4=
+	IF THEN ELSE(Time<2031, "already determind retirement age 2020-2030"*yearly trigger \
+		, IF THEN ELSE(target age Kunduz proposal
+	>="RT Policy 4: Kunduz proposal with 6 months increase Stock", IF THEN ELSE(target age Kunduz proposal
+	-"RT Policy 4: Kunduz proposal with 6 months increase Stock"
+	>"6 months per year", "6 months per year"*yearly trigger , 0
+	 ) , 0 ) )
+	~	Dmnl
+	~		|
+
+test delay of firing when there is labour surplus=
+	1
+	~	Year
+	~		|
+
+"6 months per year"=
+	0.5
+	~	Year
+	~		|
+
+"3 months per year"=
+	0.25
+	~	Year
+	~		|
+
+"M Policy 5: Migration ouflow female"[female all]=
+	IF THEN ELSE(Total labour balance>=0, ((Total labour balance/total Average FTE per female\
+		)*labour balance on migration coefficient)*lookup factors net migration per age female
+	(female age groups[female all])/delay factor adapting migration policy
+	 , 0 )
+	~	person/(Year*Year)
+	~		|
+
+"M Policy 5: Migration inflow female"[female all]=
+	IF THEN ELSE(Total labour balance<0, ((-Total labour balance/total Average FTE per female\
+		)*labour balance on migration coefficient)*lookup factors net migration per age female
+	(female age groups[female all])/delay factor adapting migration policy
+	 , 0 )
+	~	person/(Year*Year)
+	~		|
+
+Wages in Industry[s industry]=
+	Wages[s industry]
+	~	Euro/(FTE*Month)
+	~		|
+
+increase in capital[s industry]=
+	exogenous trend in capital+(increase in wages[s industry]/Wages in Industry[s industry\
+		])*Wages on capital coefficient
+	~	1/Year
+	~		|
+
+Wages in Service[s service]=
+	Wages[s service]
+	~	Euro/(FTE*Month)
+	~		|
+
+increase in technology[s industry]=
+	exogenous trend in technology+(increase in wages[s industry]/Wages in Industry[s industry\
+		])*Wages on technology coefficient
+	~	1/Year
+	~		|
+
+decrease female FTE per age[female all]=
+	IF THEN ELSE(average wages>wages threshold for decreasing FTE per worker, IF THEN ELSE\
+		 (female working age boolean[female all
+	] = 1 , ( Female FTE per age
+	[female all] - minimum FTE per age
+	) * annual change in FTE per age due to higher wages*difference between average wages and wages threshold for FTE per worker
+	, ( Female FTE per age
+	[female all] - minimum FTE per age
+	) * annual change in FTE per age due to higher wages*factor extra change in FTE per age if retired\
+		*difference between average wages and wages threshold for FTE per worker
+	 ),0 )
+	~	FTE/(Year*person)
+	~		|
+
+average wages=
+	SUM(Wages[sectors!])/2
+	~	Euro/(FTE*Month)
+	~		|
+
+difference between average wages and wages threshold for FTE per worker=
+	MAX(1, (average wages-wages threshold for decreasing FTE per worker)/wages threshold for decreasing FTE per worker\
+		)
+	~	Dmnl
+	~		|
+
+difference between average wages and wages threshold for labour participation=
+	MAX(1, (average wages-wages threshold for decreasing labour participation)/wages threshold for decreasing labour participation\
+		)
+	~	Dmnl
+	~		|
+
+Decrease in Male Labour Participation[male all]=
+	IF THEN ELSE(average wages>wages threshold for decreasing labour participation, IF THEN ELSE\
+		 (male working age boolean
+	[male all] = 1 , ( Male Labour Participation per age
+	[male all] - minimum Labour Participation
+	) * annual change in labour participation due to higher wages*difference between average wages and wages threshold for labour participation
+	, ( Male Labour Participation per age[male all] - minimum Labour Participation
+	) * annual change in labour participation due to higher wages*factor extra change in labour participation if retired\
+		*difference between average wages and wages threshold for labour participation
+	 ),
+	0 )
+	~	1/Year
+	~		|
+
+Decrease in Female Labour Participation[female all]=
+	IF THEN ELSE(average wages>wages threshold for decreasing labour participation, IF THEN ELSE\
+		 (female working age boolean
+	[female all] = 1 , ( Female Labour Participation per age
+	[female all] - minimum Labour Participation
+	) * annual change in labour participation due to higher wages*difference between average wages and wages threshold for labour participation
+	, ( Female Labour Participation per age[female all] - minimum Labour Participation
+	) * annual change in labour participation due to higher wages*factor extra change in labour participation if retired\
+		*difference between average wages and wages threshold for labour participation
+	 ),
+	0 )
+	~	1/Year
+	~		|
+
+decrease in male FTE per age[male all]=
+	IF THEN ELSE(average wages>wages threshold for decreasing FTE per worker, IF THEN ELSE\
+		 (male working age boolean[male all
+	] = 1 , ( Male FTE per age
+	[male all] - minimum FTE per age
+	) * annual change in FTE per age due to higher wages*difference between average wages and wages threshold for FTE per worker
+	, ( Male FTE per age
+	[male all] - minimum FTE per age
+	) * annual change in FTE per age due to higher wages*factor extra change in FTE per age if retired\
+		*difference between average wages and wages threshold for FTE per worker
+	 ),0 )
+	~	(FTE/person)/Year
+	~		|
+
+lookup init male percentage Industry and Service per age(
+	[(0,0)-(106,10)],(0,0),(14,0),(15,0.14),(24,0.14),(25,0.22),(34,0.22),(35,0.24),(44,\
+		0.24),(45,0.28),(54,0.28),(55,0.29),(64,0.29),(65,0.22),(74,0.22),(75,0),(106,0))
+	~	Dmnl
+	~		|
+
+Female Workforce[female working pop all but youngest,sectors]= INTEG (
+	hiring female[female working pop all but youngest,sectors]
+	-firing female[female working pop all but youngest,sectors]
+	-female deaths and net migration in workforce[female working pop all but youngest,sectors\
+		]
+	
+	+ageing of female workforce[female working pop previous cohort,sectors]
+	-ageing of female workforce[female working pop all but youngest,sectors],
+		initial female workforce per sector[female working pop all but youngest,sectors]) ~~|
+Female Workforce[fage15,sectors]= INTEG (
+	hiring female[fage15,sectors]
+	-firing female[fage15,sectors]
+	-female deaths and net migration in workforce[fage15,sectors]
+	
+	
+	-ageing of female workforce[fage15,sectors],
+		initial female workforce per sector[fage15,sectors])
+	~	person
+	~		|
+
+dynamic male percentage per age in Industry[male working population,s industry]=
+	IF THEN ELSE(total male workforce per age[male working population]=0, 0 , Male workforce\
+		[male working population,s industry]/total male workforce per age[male working population\
+		] )
+	~	Dmnl
+	~		|
+
+dynamic male percentage per age in Service[male working population,s service]=
+	IF THEN ELSE(total male workforce per age[male working population]=0, 0 , Male workforce\
+		[male working population,s service
+	]/total male workforce per age[male working population])
+	~	Dmnl
+	~		|
+
+dynamic male percentage per sector per age[male working population,s industry]=
+	dynamic male percentage per age in Industry[male working population,s industry] ~~|
+dynamic male percentage per sector per age[male working population,s service]=
+	dynamic male percentage per age in Service[male working population,s service]
+	~	Dmnl
+	~		|
+
+total male available workforce=
+	SUM(Available Male labour supply per age[male working population!])
+	~	person
+	~		|
+
+lookup init female percentage Industry and Service per age(
+	[(0,0)-(106,10)],(0,0),(14,0),(15,0.05),(24,0.05),(25,0.06),(34,0.06),(35,0.07),(44,\
+		0.07),(45,0.09),(54,0.09),(55,0.08),(64,0.08),(65,0.06),(74,0.06),(75,0),(106,0))
+	~	Dmnl
+	~		|
+
+"GDP & Labour balance"=
+	0
+	~	Dmnl
+	~		|
+
+male Unemployment rate=
+	(total male available workforce-total male workforce)/total male available workforce
+	~	Dmnl
+	~		|
+
+Migration policies=
+	0
+	~	Dmnl
+	~		|
+
+total male workforce=
+	SUM ( total male workforce per sector[sectors!])
+	~	person
+	~		|
+
+total male workforce per age[male working population]=
+	SUM ( Male workforce[male working population,sectors!] )
+	~	person
+	~		|
+
+initial female workforce per sector[female working population,sectors]=
+	(1-init percentage unemployed)*Init female available workforce per sector[female working population\
+		,sectors]
+	~	person
+	~		|
+
+ageing of male workforce[male working population,sectors]=
+	Male workforce[male working population,sectors]/time in cohort
+	~	person/Year
+	~		|
+
+total female available workforce=
+	SUM(Available Female labour supply per age[female working population!])
+	~	person
+	~		|
+
+male potential hiring workforce[male working population]=
+	Available Male labour supply per age[male working population]-SUM(Male workforce[male working population\
+		,sectors!])
+	~	person
+	~		|
+
+Init male available workforce per sctor[male working population,s industry]=
+	Available Male labour supply per age[male working population]*init percentage male workers in Industry per age\
+		[male working population
+	] ~~|
+Init male available workforce per sctor[male working population,s service]=
+	Available Male labour supply per age[male working population]*init percentage male workers in Service per age\
+		[male working population]
+	~	person
+	~		|
+
+init percentage male workers in Service per age[male working population]=
+	1-init percentage male workers in Industry per age[male working population]
+	~	Dmnl
+	~		|
+
+init percentage female workers in Industry per age[female working population]=
+	lookup init female percentage Industry and Service per age (female age groups[female working population\
+		])
+	~	Dmnl
+	~		|
+
+Average FTE=
+	0
+	~	Dmnl
+	~		|
+
+Labour participation=
+	0
+	~	Dmnl
+	~		|
+
+Init female available workforce per sector[female working population,s industry]=
+	Available Female labour supply per age[female working population]*init percentage female workers in Industry per age\
+		[female working population
+	] ~~|
+Init female available workforce per sector[female working population,s service]=
+	Available Female labour supply per age[female working population]*init percentage female workers in Service per age\
+		[female working population
+	]
+	~	person
+	~		|
+
+Population=
+	0
+	~	Dmnl
+	~		|
+
+Productivity=
+	0
+	~	Dmnl
+	~		|
+
+Workforce=
+	0
+	~	Dmnl
+	~		|
+
+init percentage male workers in Industry per age[male working population]=
+	lookup init male percentage Industry and Service per age(male age groups[male working population\
+		])
+	~	Dmnl
+	~		|
+
+total hiring=
+	SUM( hiring female[female working population!,sectors!])+SUM( hiring male[male working population\
+		!,sectors!])
+	~	person/Year
+	~		|
+
+Unemployment rate=
+	1-((total female workforce+total male workforce)/(total female available workforce+total male available workforce\
+		))
+	~	Dmnl
+	~		|
+
+Retirement age policies=
+	0
+	~	Dmnl
+	~		|
+
+Wages policies=
+	0
+	~	Dmnl
+	~		|
+
+initial male workforce per sector[male working population,sectors]=
+	(1-init percentage unemployed)*Init male available workforce per sctor[male working population\
+		,sectors]
+	~	person
+	~		|
+
+Male workforce[male working pop all but youngest,sectors]= INTEG (
+	hiring male[male working pop all but youngest,sectors]
+	-firing male[male working pop all but youngest,sectors]
+	-male deaths and net migration in workforce[male working pop all but youngest,sectors\
+		]
+	
+	+ageing of male workforce[male working pop previous cohort,sectors]
+	-ageing of male workforce[male working pop all but youngest,sectors],
+		initial male workforce per sector[male working pop all but youngest,sectors]) ~~|
+Male workforce[mage15,sectors]= INTEG (
+	hiring male[mage15,sectors]
+	-firing male[mage15,sectors]
+	-male deaths and net migration in workforce[mage15,sectors]
+	
+	-ageing of male workforce[mage15,sectors],
+		initial male workforce per sector[mage15,sectors])
+	~	person
+	~		|
+
+total male workforce per sector[s industry]=
+	SUM ( Male workforce[male working population!,s industry!] ) ~~|
+total male workforce per sector[s service]=
+	SUM ( Male workforce[male working population!,s service!] )
+	~	person
+	~		|
+
+male working population:
+	mage15, mage16, mage17, mage18, mage19, mage20, mage21, mage22, mage23, mage24, mage25\
+		, mage26, mage27, mage28, mage29, mage30, mage31, mage32, mage33, mage34, mage35, mage36\
+		, mage37, mage38, mage39, mage40, mage41, mage42, mage43, mage44, mage45, mage46, mage47\
+		, mage48, mage49, mage50, mage51, mage52, mage53, mage54, mage55, mage56, mage57, mage58\
+		, mage59, mage60, mage61, mage62, mage63, mage64, mage65, mage66, mage67, mage68, mage69\
+		, mage70, mage71, mage72, mage73, mage74, mage75, mage76, mage77, mage78, mage79, mage80\
+		, mage81, mage82, mage83, mage84, mage85, mage86, mage87, mage88, mage89, mage90, mage91\
+		, mage92, mage93, mage94, mage95
+	~	
+	~		|
+
+total firing=
+	SUM (firing female[female working population!,sectors!])+SUM (firing male[male working population\
+		!,sectors!])
+	~	person/Year
+	~		|
+
+female potential hiring workforce[female working population]=
+	Available Female labour supply per age[female working population]-SUM(Female Workforce\
+		[female working population,sectors!])
+	~	person
+	~		|
+
+test hiring=
+	IF THEN ELSE(test delta difference>1, MAX(test delta difference, 0 )*(test potential hiring workforce\
+		/test hiring time), 0)
+	~	1/Year
+	~		|
+
+test labour demand=
+	IF THEN ELSE(test switch labour demand=1, test labour demand1 , test labour demand2 \
+		)
+	~	Dmnl
+	~		|
+
+dynamic female percentage per age in Industry[female working population,s industry]=
+	IF THEN ELSE(total female workforce per age[female working population]=0, 0 , Female Workforce\
+		[female working population
+,s industry]/total female workforce per age[female working population] )
+	~	Dmnl
+	~		|
+
+dynamic female percentage per sector per age[female working population,s industry]=
+	dynamic female percentage per age in Industry[female working population,s industry] ~~|
+dynamic female percentage per sector per age[female working population,s service]=
+	dynamic female percentage per age in Service[female working population,s service]
+	~	Dmnl
+	~		|
+
+total female workforce per sector[s industry]=
+	SUM ( Female Workforce[female working population!,s industry!] ) ~~|
+total female workforce per sector[s service]=
+	SUM ( Female Workforce[female working population!,s service!] )
+	~	person
+	~		|
+
+"1test unemployment rate"=
+	(test available workforce-test workforce)/test available workforce
+	~	Dmnl
+	~		|
+
+test delta difference=
+	1+(test labour demand-test total workforce)/test labour demand
+	~	Dmnl
+	~		|
+
+female deaths and net migration in workforce[female working population,sectors]=
+	MAX(0,"female relative change working population - deaths and migration"[female working population\
+		,sectors]* Female Workforce[female working population
+	,sectors])
+	~	person/Year
+	~		|
+
+test switch labour demand=
+	2
+	~	Dmnl
+	~		|
+
+total female workforce per age[female working population]=
+	SUM ( Female Workforce[female working population,sectors!] )
+	~	person
+	~		|
+
+"Need for labour - relative difference between potential and actual workforce"[sectors\
+		]=
+	1+(( labour demand per sector[sectors] - total workforce per sector[sectors] ) / labour demand per sector\
+		[sectors])
+	~	Dmnl
+	~		|
+
+test labour demand2= WITH LOOKUP (
+	Time,
+		                    ([(2020,0)-(2070,2000)],(2020,120),(2070,240) ))
+	~	Dmnl
+	~		|
+
+ageing of female workforce[female working population,sectors]=
+	Female Workforce[female working population,sectors]/time in cohort
+	~	person/Year
+	~		|
+
+dynamic female percentage per age in Service[female working population,s service]=
+	IF THEN ELSE(total female workforce per age[female working population]=0, 0 , Female Workforce\
+		[female working population
+,s service]/total female workforce per age[female working population] )
+	~	Dmnl
+	~		|
+
+"Init percentage GDP Industry/Service"[s industry]=
+	0.219 ~~|
+"Init percentage GDP Industry/Service"[s service]=
+	1-0.219
+	~	Dmnl
+	~		|
+
+labour demand per sector[sectors]=
+	(potential GDP[sectors]/months per year)/Productivity per sector[sectors]
+	~	FTE
+	~		|
+
+months per year=
+	12
+	~	Month/Year
+	~		|
+
+baseline capital=
+	0
+	~	Dmnl
+	~		|
+
+Init healthcare level=
+	0
+	~	Dmnl
+	~		|
+
+female fertility rate=
+	1.55
+	~	Dmnl
+	~		|
+
+increase in healthcare=
+	Exogenous Healthcare level increase
+	~	1/Year
+	~		|
+
+Healthcare level= INTEG (
+	increase in healthcare,
+		Init healthcare level)
+	~	Dmnl
+	~		|
+
+Exogenous Healthcare level increase=
+	0.02
+	~	1/Year
+	~		|
+
+total relative difference between potential and actual workforce=
+	1+(SUM( labour demand per sector[sectors!]) - SUM(total workforce per sector[sectors\
+		!]) ) / SUM(labour demand per sector[sectors!])
+	~	Dmnl
+	~		|
+
+total female workforce=
+	SUM ( total female workforce per sector[sectors!])
+	~	person
+	~		|
+
+Productivity in Service[s service]= INTEG (
+	increase in productivity in service[s service],
+		init productivity in service[s service])
+	~	Euro/(FTE*Month)
+	~		|
+
+"GDP Scenario 3: gap above GDP"[sectors]=
+	(GDP[sectors]*(1+gap between GDP and potential GDP)-potential GDP[sectors])/adjustment time potential GDP to GDP
+	~	Euro/(Year*Year)
+	~		|
+
+TEST unemployment rate=
+	0
+	~	Dmnl
+	~		|
+
+test workforce= INTEG (
+	test hiring-test firing,
+		init test workforce)
+	~	Dmnl
+	~		|
+
+test time working at same job=
+	9
+	~	Year
+	~		|
+
+test hiring time=
+	0.75
+	~	Year
+	~		|
+
+test potential hiring workforce=
+	test available workforce-test workforce
+	~	Dmnl
+	~		|
+
+test total workforce=
+	test workforce
+	~	Dmnl
+	~		|
+
+test available workforce=
+	100
+	~	Dmnl
+	~		|
+
+test labour demand1= WITH LOOKUP (
+	Time,
+		                    ([(2020,0)-(2070,2000)],(2020,120),(2070,70) ))
+	~	Dmnl
+	~		|
+
+init test workforce=
+	93
+	~	Dmnl
+	~		|
+
+init percentage unemployed=
+	0.04
+	~	Dmnl
+	~		|
+
+female working population:
+	fage15, fage16, fage17, fage18, fage19, fage20, fage21, fage22, fage23, fage24, fage25\
+		, fage26, fage27, fage28, fage29, fage30, fage31, fage32, fage33, fage34, fage35, fage36\
+		, fage37, fage38, fage39, fage40, fage41, fage42, fage43, fage44, fage45, fage46, fage47\
+		, fage48, fage49, fage50, fage51, fage52, fage53, fage54, fage55, fage56, fage57, fage58\
+		, fage59, fage60, fage61, fage62, fage63, fage64, fage65, fage66, fage67, fage68, fage69\
+		, fage70, fage71, fage72, fage73, fage74, fage75, fage76, fage77, fage78, fage79, fage80\
+		, fage81, fage82, fage83, fage84, fage85, fage86, fage87, fage88, fage89, fage90, fage91\
+		, fage92, fage93, fage94, fage95
+	~	
+	~		|
+
+average hiring time for new workforce=
+	0.25
+	~	Year
+	~		|
+
+average time working at same job[s industry]=
+	10.53 ~~|
+average time working at same job[s service]=
+	8.27
+	~	Year
+	~		|
+
+"RT Policy 2: ASAP to 75 with 6 months increase Stock"= INTEG (
+	increase in RT policy 2,
+		RT at 2020)
+	~	Year
+	~		|
+
+"RT Policy 2: ASAP to 75 with 6 months increase"=
+	"RT Policy 2: ASAP to 75 with 6 months increase Stock"
+	~	Year
+	~		|
+
+"RT Policy 3: Kunduz proposal Stock"= INTEG (
+	increase in RT policy 3,
+		RT at 2020)
+	~	Year
+	~		|
+
+"RT Policy 4: Kunduz proposal with 6 months increase"=
+	"RT Policy 4: Kunduz proposal with 6 months increase Stock"
+	~	Year
+	~		|
+
+female lookup mortality rate(
+	[(0,0)-(125,1)],(0.5,0.003204),(3,0.000157),(7.5,5.8e-05),(12.5,7.7e-05),(17.5,0.000131\
+		),(22.5,0.000191),(27.5,0.000212),(32.5,0.000334),(37.5,0.000496),(42.5,0.000784),(\
+		47.5,0.001234),(52.5,0.002034),(57.5,0.003366),(62.5,0.005796),(67.5,0.009356),(72.5\
+		,0.015359),(77.5,0.027071),(82.5,0.051508),(87.5,0.105606),(92.5,0.148515),(97.5,0.209686\
+		),(125,1))
+	~	1/Year
+	~		|
+
+"already determind retirement age 2020-2030"= WITH LOOKUP (
+	Time,
+		        ([(2020,0)-(2070,0.3)],(2020,0),(2021,0),(2022,0.25),(2023,0.25),(2024,0.17\
+		),(2025,0),(2026,0),(2027,0),(2027.99,0),(2028,0.25),(2029,0),(2030,0),(2031,0),(2070\
+		,0) ))
+	~	Year
+	~		|
+
+female births=
+	MAX(0, (female total fertile population*average number of children per female per year\
+		*female fraction of newborn
+	) )
+	~	person/Year
+	~		|
+
+male lookup mortality rate(
+	[(0,0)-(125,1)],(0.5,0.003768),(3,0.00022),(7.5,5.6e-05),(12.5,8.4e-05),(17.5,0.000211\
+		),(22.5,0.000362),(27.5,0.000389),(32.5,0.000544),(37.5,0.000811),(42.5,0.001107),(\
+		47.5,0.00176),(52.5,0.00307),(57.5,0.0045),(62.5,0.00835),(67.5,0.013737),(72.5,0.023428\
+		),(77.5,0.042081),(82.5,0.078912),(87.5,0.152249),(91.9118,0.19802),(97.5,0.260683)\
+		,(125,1))
+	~	1/Year
+	~		|
+
+one year=
+	1
+	~	Year
+	~		|
+
+male births=
+	MAX(0, (female total fertile population*average number of children per female per year\
+		*male fraction of newborn) )
+	~	person/Year
+	~		|
+
+"RT Policy 4: Kunduz proposal with 6 months increase Stock"= INTEG (
+	increase in RT policy 4,
+		RT at 2020)
+	~	Year
+	~		|
+
+female working age boolean[female all]=
+	IF THEN ELSE ( female age groups[female all] >= labour market entry age , IF THEN ELSE\
+		 ( female age groups[female all] 
+	< Retirement age policy , 1 , 0 ), 0 )
+	~	Dmnl
+	~		|
+
+female net migration[female all]=
+	net migration female[female all]
+	~	person/Year
+	~		|
+
+RT at 2020=
+	66.33
+	~	Year
+	~		|
+
+"RT Policy 1: ASAP to 75"=
+	"RT Policy 1: ASAP to 75 Stock"
+	~	Year
+	~		|
+
+male working age boolean[male all]=
+	IF THEN ELSE ( male age groups[male all] >= labour market entry age , IF THEN ELSE (\
+		 male age groups[male all] < Retirement age policy
+	 , 1 , 0 ), 0 )
+	~	Dmnl
+	~		|
+
+yearly trigger=
+	PULSE TRAIN( INITIAL TIME , TIME STEP , one year , FINAL TIME )/ TIME STEP
+	~	1/Year
+	~		|
+
+"RT Policy 3: Kunduz proposal"=
+	"RT Policy 3: Kunduz proposal Stock"
+	~	Year
+	~		|
+
+wages threshold for decreasing labour participation=
+	6500
+	~	Euro/(FTE*Month)
+	~		|
+
+target age Kunduz proposal=
+	MIN( (life expectancy-"65 year mark")*"factor 8 months/1 year"+"65 year mark", 79.75\
+		)
+	~	Year
+	~		|
+
+wages threshold for decreasing FTE per worker=
+	5500
+	~	Euro/(FTE*Month)
+	~		|
+
+"M Policy 2: Migration ouflow female"[female all]=
+	("M Policy 2: Decreasing migration Stock female"[female all]-"M 2 Policy: Goal of migration numbers female"\
+		[female all]
+	)*decreasing factor migration policy 2
+	~	person/(Year*Year)
+	~		|
+
+"M Policy 6: Female migration with maximum"[female all]=
+	"female net migration=max number of females in M Policy 6"[female all]
+	~	person/Year
+	~		|
+
+MAX number of females in policy 6=
+	25000
+	~	person
+	~		|
+
+MAX number of males in policy 6=
+	25000
+	~	person
+	~		|
+
+total male migration check per year=
+	SUM(Increase in total net migration male per year[male all!])
+	~	person/Year
+	~		|
+
+lookup factors net migration per age female(
+	[(0,0)-(106,0.3)],(0,0.00892),(4.99,0.00892),(5,0.01074),(9.99,0.01074),(10,0.01232)\
+		,(14.99,0.01232),(15,0.0479),(19.99,0.0479),(20,0.0152),(24.99,0.0152),(25,0.02224)\
+		,(29.99,0.02224),(30,0.02389),(34.99,0.02389),(35,0.01819),(39.99,0.01819),(40,0.01471\
+		),(44.99,0.01471),(45,0.01252),(49.99,0.01252),(50,0.00334),(69.99,0.00334),(70,0),\
+		(106,0))
+	~	1/Year
+	~		|
+
+Migration policy outcome female[female all]=
+	IF THEN ELSE(Policy Switch Migration=1, "M Policy 1: No migration female"[female all\
+		] , IF THEN ELSE(Policy Switch Migration
+	=2,
+	 "M Policy 2: Decreasing migration female"[female all] , IF THEN ELSE(Policy Switch Migration\
+		=3, "M Policy 3: Constant migration female"
+	[female all], IF THEN ELSE(Policy Switch Migration=4, "M Policy 4: Increasing migration female"\
+		[female all] , IF THEN ELSE
+	(Policy Switch Migration=5, "M Policy 5: Adapting migration female"[female all] , IF THEN ELSE\
+		(Policy Switch Migration=6, "M Policy 6: Female migration with maximum"[female all]\
+		 , 0 ) ) ) ) ) )
+	~	person/Year
+	~		|
+
+Migration policy outcome male[male all]=
+	IF THEN ELSE(Policy Switch Migration=1, "M Policy 1: No migration male"[male all] , \
+		IF THEN ELSE(Policy Switch Migration
+	=2,
+	 "M Policy 2: Decreasing migration male"[male all] , IF THEN ELSE(Policy Switch Migration\
+		=3, "M Policy 3: Constant migration male"
+	[male all] , IF THEN ELSE(Policy Switch Migration=4, "M Policy 4: Increasing migration male"\
+		[male all] , IF THEN ELSE
+	(Policy Switch Migration=5, "M Policy 5: Adapting migration male"[male all] , IF THEN ELSE\
+		(Policy Switch Migration=6, "M Policy 6: Male migration with maximum"[male all] , 0\
+		 ) ) ) ) ) )
+	~	person/Year
+	~		|
+
+"female net migration=max number of females in M Policy 6"[female all]=
+	lookup factors net migration per age female(female age groups[female all])*MAX number of females in policy 6
+	~	person/Year
+	~		|
+
+"M Policy 6: Male migration with maximum"[male all]=
+	"male net migration=max number of males in M Policy 6"[male all]
+	~	person/Year
+	~		|
+
+total female migration check per year[female all]=
+	SUM(Increase in total net migration female per year[female all!])
+	~	person/Year
+	~		|
+
+lookup factors net migration per age male(
+	[(0,0)-(106,0.3)],(0,0.00909),(4.99,0.00909),(5,0.01011),(9.99,0.01011),(10,0.01198)\
+		,(14.99,0.01198),(15,0.03689),(19.99,0.03689),(20,0.02154),(24.99,0.02154),(25,0.02588\
+		),(29.99,0.02588),(30,0.02654),(34.99,0.02654),(35,0.01969),(39.99,0.01969),(40,0.01492\
+		),(44.99,0.01492),(45,0.01122),(49.99,0.01122),(50,0.00304),(69.99,0.00304),(70,0),\
+		(106,0))
+	~	1/Year
+	~		|
+
+"male net migration=max number of males in M Policy 6"[male all]=
+	lookup factors net migration per age male(male age groups[male all])*MAX number of males in policy 6
+	~	person/Year
+	~		|
+
+exogenous trend increase in Male Labour Participation=
+	0.01
+	~	1/Year
+	~		|
+
+"M Policy 3: Constant migration female"[female all]=
+	net migration in 2020 female[female all]
+	~	person/Year
+	~		|
+
+"RT Policy 1: ASAP to 75 Stock"= INTEG (
+	increase in RT Policy 1,
+		RT at 2020)
+	~	Year
+	~		|
+
+"M Policy 4: Increasing migration female"[female all]=
+	"M Policy 4: Increasing migration Stock female"[female all]
+	~	person/Year
+	~		|
+
+"1T Policy 1: Target all ages"[female all]=
+	1
+	~	Dmnl
+	~		|
+
+"1T Policy 2: Target only working age migrants"[female all]=
+	female working age boolean[female all]
+	~	Dmnl
+	~		|
+
+"1T Policy 3: Target workers of specific age"[female all]=
+	IF THEN ELSE ( female age groups[female all] >= "T policy 3: Starting age" , IF THEN ELSE\
+		 ( female age groups[female all] < "T Policy 3: Ending age"
+	 , 1 , 0 ), 0 )
+	~	Dmnl
+	~		|
+
+"M Policy 5: Adapting migration female"[female all]=
+	"M Policy 5: Adapting migration Stock female"[female all]
+	~	person/Year
+	~		|
+
+Increase in Female Labour Participation[female all]=
+	(exogenous trend increase in Female Labour Participation*female working age boolean[\
+		female all])*(maximum Labour Participation-Female Labour Participation per age[female all\
+		])
+	+
+	(
+	IF THEN ELSE ( Switch labour participation policy after starting year = 1 , starting age increase in female labour participation boolean
+	[female all] * female working age boolean[female all] * ( maximum Labour Participation\
+		 - Female Labour Participation per age
+	[female all] ) * annual change in labour participation due to policy , 0 )
+	)
+	~	1/Year
+	~		|
+
+"M Policy 5: Adapting migration Stock female"[female all]= INTEG (
+	"M Policy 5: Migration inflow female"[female all]-"M Policy 5: Migration ouflow female"\
+		[female all],
+		net migration in 2020 female[female all])
+	~	person/Year
+	~		|
+
+annual change in FTE per age due to higher wages=
+	0.001
+	~	1/Year
+	~		|
+
+annual change in labour participation due to higher wages=
+	0.001
+	~	1/Year
+	~		|
+
+lookup init female FTE per age(
+	[(0,0)-(125,1)],(0,0),(15,0),(17.25,0.42),(22.5,0.42),(27.5,0.77),(32.5,0.77),(37.5,\
+		0.72),(42.5,0.72),(47.5,0.72),(52.5,0.72),(57.5,0.68),(62.5,0.68),(67.5,0.48),(72.5\
+		,0.48),(75,0),(106,0))
+	~	FTE/person
+	~		|
+
+lookup init male FTE per age(
+	[(0,0)-(125,1)],(0,0),(15,0),(17.5,0.53),(22.5,0.53),(27.5,0.93),(32.5,0.93),(37.5,0.98\
+		),(42.5,0.98),(47.5,0.99),(52.5,0.99),(57.5,0.95),(62.5,0.95),(67.5,0.66),(72.5,0.66\
+		),(75,0),(106,0))
+	~	FTE/person
+	~		|
+
+lookup init male Labour participation(
+	[(0,0)-(106,1)],(0,0),(15,0),(17.5,0.639),(22.5,0.756),(27.5,0.887),(32.5,0.904),(37.5\
+		,0.906),(42.5,0.902),(47.5,0.895),(52.5,0.887),(57.5,0.852),(62.5,0.725),(67.5,0.249\
+		),(72.5,0.094),(75,0),(106,0))
+	~	Dmnl
+	~		|
+
+Increase in total net migration female per year[female all]=
+	net migration female[female all]
+	~	person/Year
+	~		|
+
+Female FTE per age[female all]= INTEG (
+	increase female FTE per age[female all]-decrease female FTE per age[female all],
+		lookup init female FTE per age (female age groups[female all]))
+	~	FTE/person
+	~		|
+
+"M Policy 4: Migration inflow female"[female all]=
+	("M 4 Policy: Goal of migration numbers female"[female all]-"M Policy 4: Increasing migration Stock female"\
+		[female all])*increasing factor migration policy 4
+	~	person/(Year*Year)
+	~		|
+
+Male Labour Participation per age[male all]= INTEG (
+	Increase in Male Labour Participation[male all]-Decrease in Male Labour Participation\
+		[male all],
+		lookup init male Labour participation (male age groups[male all]))
+	~	Dmnl
+	~		|
+
+Switch FTE per age policy after starting year=
+	IF THEN ELSE ( Time > Starting year FTE per age policy , "Policy Switch - FTE per age"\
+		 , 0 )
+	~	Dmnl
+	~		|
+
+"M Policy 1: No migration female"[female all]=
+	lookup no migration(female age groups[female all])
+	~	person/Year
+	~		|
+
+"T Policy 2: Target only working age migrants"[male all]=
+	male working age boolean[male all]
+	~	Dmnl
+	~		|
+
+"M Policy 2: Decreasing migration female"[female all]=
+	"M Policy 2: Decreasing migration Stock female"[female all]
+	~	person/Year
+	~		|
+
+"T Policy 3: Target workers of specific age"[male all]=
+	IF THEN ELSE ( male age groups[male all] >= "T policy 3: Starting age" , IF THEN ELSE\
+		 ( male age groups[male all] < "T Policy 3: Ending age"
+	 , 1 , 0 ), 0 )
+	~	Dmnl
+	~		|
+
+exogenous trend increase in Female Labour Participation=
+	0.01
+	~	1/Year
+	~		|
+
+total net migration female=
+	SUM(Total net migration female per age[female all!])
+	~	person
+	~		|
+
+Target policy outcome female[female all]=
+	IF THEN ELSE(Policy Switch Targeting ages in migration=1, "1T Policy 1: Target all ages"\
+		[female all] , IF THEN ELSE(Policy Switch Targeting ages in migration=2, "1T Policy 2: Target only working age migrants"\
+		[female all] , IF THEN ELSE(Policy Switch Targeting ages in migration=3, "1T Policy 3: Target workers of specific age"\
+		[female all] , 0 )) )
+	~	Dmnl
+	~		|
+
+init total net migration female[female all]=
+	0
+	~	person
+	~		|
+
+max retirement age=
+	75
+	~	Year
+	~		|
+
+lookup init female Labour participation(
+	[(0,0)-(106,0.9)],(0,0),(15,0),(17.5,0.695),(22.5,0.791),(27.5,0.849),(32.5,0.818),(\
+		37.5,0.812),(42.5,0.796),(47.5,0.814),(52.5,0.796),(57.5,0.712),(62.5,0.523),(67.5,\
+		0.153),(72.5,0.054),(75,0),(106,0))
+	~	Dmnl
+	~		|
+
+Female Labour Participation per age[female all]= INTEG (
+	Increase in Female Labour Participation[female all]-Decrease in Female Labour Participation\
+		[female all],
+		lookup init female Labour participation (female age groups[female all]))
+	~	Dmnl
+	~		|
+
+"M 2 Policy: Goal of migration numbers female"[female all]=
+	M 2 Policy Goal lower percentage*net migration in 2020 female[female all]
+	~	person/Year
+	~		|
+
+net migration in 2020 male[male all]=
+	lookup net migration in 2020 male(male age groups[male all])
+	~	person/Year
+	~		|
+
+increase female FTE per age[female all]=
+	
+	IF THEN ELSE ( Switch FTE per age policy after starting year = 1 , starting age increase in female FTE per age boolean\
+		[
+	female all] * female working age boolean[female all] * ( maximum FTE per age - Female FTE per age\
+		[female all] ) * annual change in FTE per age due to policy
+	 , 0 )
+	~	FTE/(Year*person)
+	~		|
+
+factor extra change in FTE per age if retired=
+	2
+	~	Dmnl
+	~		|
+
+factor extra change in labour participation if retired=
+	2
+	~	Dmnl
+	~		|
+
+"M Policy 2: Decreasing migration Stock female"[female all]= INTEG (
+	-"M Policy 2: Migration ouflow female"[female all],
+		net migration in 2020 female[female all])
+	~	person/Year
+	~		|
+
+lookup net migration in 2020 male(
+	[(0,0)-(125,2000)],(0,439),(4.9,439),(5,488),(9.9,488),(10,578),(14.9,578),(15,1782)\
+		,(19.9,1782),(20,1041),(24.9,1041),(25,1250),(29.9,1250),(30,1282),(34.9,1282),(35,\
+		951),(39.9,951),(40,721),(44.9,721),(45,542),(49.9,542),(50,147),(70,147),(75,0),(106\
+		,0))
+	~	person/Year
+	~		|
+
+Increase in Male Labour Participation[male all]=
+	exogenous trend increase in Male Labour Participation*male working age boolean[male all\
+		]*(maximum Labour Participation-Male Labour Participation per age[male all])
+	+
+	(
+	IF THEN ELSE ( Switch labour participation policy after starting year = 1 , starting age increase in male labour participation boolean
+	[male all] * male working age boolean[male all] * ( maximum Labour Participation - Male Labour Participation per age\
+		[male all
+	] ) * annual change in labour participation due to policy , 0 )
+	)
+	~	1/Year
+	~		|
+
+net migration female[female all]=
+	IF THEN ELSE(Time>starting year of migration policy, Migration policy outcome female\
+		[female all]*Target policy outcome female
+	[female all] , 0 )
+	~	person/Year
+	~		|
+
+lookup net migration in 2020 female(
+	[(0,0)-(125,3000)],(0,444),(4.9,444),(5,535),(9.9,535),(10,614),(14.9,614),(15,2387)\
+		,(19.9,2387),(20,757),(24.9,757),(25,1108),(29.9,1108),(30,1190),(34.9,1190),(35,906\
+		),(39.9,906),(40,733),(44.9,733),(45,624),(49.9,624),(50,167),(70,167),(75,0),(106,\
+		0))
+	~	person/Year
+	~		|
+
+total net migration=
+	total net migration female+total net migration male
+	~	person
+	~		|
+
+Total net migration female per age[female all]= INTEG (
+	Increase in total net migration female per year[female all],
+		init total net migration female[female all])
+	~	person
+	~		|
+
+"M Policy 4: Increasing migration Stock female"[female all]= INTEG (
+	"M Policy 4: Migration inflow female"[female all],
+		net migration in 2020 female[female all])
+	~	person/Year
+	~		|
+
+Male FTE per age[male all]= INTEG (
+	increase in male FTE per age[male all]-decrease in male FTE per age[male all],
+		lookup init male FTE per age (male age groups[male all]))
+	~	FTE/person
+	~		|
+
+net migration in 2020 female[female all]=
+	lookup net migration in 2020 female(female age groups[female all])
+	~	person/Year
+	~		|
+
+"M 4 Policy: Goal of migration numbers female"[female all]=
+	M 4 Policy Goal higher percentage*net migration in 2020 female[female all]
+	~	person/Year
+	~		|
+
+"65 year mark"=
+	65
+	~	Year
+	~		|
+
+Productivity per sector[s industry]=
+	Productivity in Industry[s industry] ~~|
+Productivity per sector[s service]=
+	Productivity in Service[s service]
+	~	(Euro/Month)/FTE
+	~		|
+
+adjustment time potential GDP to GDP=
+	0.5
+	~	Year
+	~		|
+
+"factor 8 months/1 year"=
+	0.67
+	~	Dmnl
+	~		|
+
+"W Policy 1: Wages dependant on exogenous trend"[s industry]=
+	exogenous trend in wages in Industry ~~|
+"W Policy 1: Wages dependant on exogenous trend"[s service]=
+	exogenous trend in wages in Service
+	~	Euro/(FTE*Month*Year)
+	~		|
+
+Productivity in Industry[s industry]= INTEG (
+	increase in productivity in industry[s industry],
+		init productivity in industry[s industry])
+	~	Euro/(FTE*Month)
+	~		|
+
+init productivity in industry[s industry]=
+	15500
+	~	Euro/(FTE*Month)
+	~	31991 -> constructed by limited sources so the productivity is adapted to \
+		create a realistic labour demand at the start of the simulation. This is \
+		further explained in the appendix of the thesis.
+	|
+
+Increase in total net migration male per year[male all]=
+	net migration male[male all]
+	~	person/Year
+	~		|
+
+init total net migration male[male all]=
+	0
+	~	person
+	~		|
+
+Total net migration male per age[male all]= INTEG (
+	Increase in total net migration male per year[male all],
+		init total net migration male[male all])
+	~	person
+	~		|
+
+total net migration male=
+	SUM(Total net migration male per age[male all!])
+	~	person
+	~		|
+
+init productivity in service[s service]=
+	13000
+	~	Euro/(FTE*Month)
+	~	14887 -> constructed by limited sources so the productivity is adapted to \
+		create a realistic labour demand at the start of the simulation. This is \
+		further explained in the appendix of the thesis.
+	|
+
+"Validation test - RT peek"= WITH LOOKUP (
+	Time,
+		  ([(2020,60)-(2070,80)],(2020,65),(2025,64),(2040,67),(2041,72),(2070,75) ))
+	~	Year
+	~		|
+
+distribution wages scenario coefficient=
+	0.5
+	~	Dmnl
+	~		|
+
+exogenous trend in wages in Service=
+	10
+	~	Euro/(FTE*Month*Year)
+	~		|
+
+exogenous trend in wages in Industry=
+	10
+	~	Euro/(FTE*Month*Year)
+	~		|
+
+labour balance and wages coefficient=
+	125
+	~	Euro/(FTE*Month*Year)
+	~		|
+
+Wages[sectors]= INTEG (
+	increase in wages[sectors],
+		init wages per sector[sectors])
+	~	Euro/(FTE*Month)
+	~		|
+
+Policy Switch Wages scenario's=
+	2
+	~	Dmnl
+	~	1 = Wages are dependant on exogenous trend.
+		2 = Wages are dependant on labour balance.
+		3 = Wages are dependant on labour balance and exogenous trend. The \
+		distribution is based on ''distribution wages scenario coefficient''.
+	|
+
+init wages per sector[s industry]=
+	4309.6 ~~|
+init wages per sector[s service]=
+	4067.47
+	~	Euro/(FTE*Month)
+	~		|
+
+init technology=
+	0
+	~	Dmnl
+	~		|
+
+init human capital=
+	0
+	~	Dmnl
+	~		|
+
+increase in human capital[s service]=
+	exogenous trend in human capital
+	~	1/Year
+	~		|
+
+Human capital[s service]= INTEG (
+	increase in human capital[s service],
+		init human capital)
+	~	Dmnl
+	~		|
+
+Technology[s industry]= INTEG (
+	increase in technology[s industry],
+		init technology)
+	~	Dmnl
+	~		|
+
+delay factor adapting migration policy=
+	5
+	~	Year
+	~		|
+
+starting year of migration policy=
+	2020
+	~	Year
+	~		|
+
+net migration male[male all]=
+	IF THEN ELSE(Time>starting year of migration policy, Migration policy outcome male[male all\
+		]*Target policy outcome male[male all] , 0 )
+	~	person/Year
+	~		|
+
+Capital[s industry]= INTEG (
+	increase in capital[s industry]-decrease in capital[s industry],
+		init capital)
+	~	Dmnl
+	~		|
+
+gap between GDP and potential GDP=
+	0.1
+	~	Dmnl
+	~		|
+
+init capital=
+	0.1
+	~	Dmnl
+	~		|
+
+return to baseline of capital delay=
+	3
+	~	Year
+	~		|
+
+decrease in capital[s industry]=
+	(Capital[s industry]-baseline capital)/return to baseline of capital delay
+	~	1/Year
+	~		|
+
+potential GDP[s industry]= INTEG (
+	increase in GDP[s industry],
+		init potential GDP per sector[s industry]) ~~|
+potential GDP[s service]= INTEG (
+	increase in GDP[s service],
+		init potential GDP per sector[s service])
+	~	Euro/Year
+	~		|
+
+Scenario Switch GDP scenario's=
+	2
+	~	Dmnl
+	~	1 = potential GDP is a certain gap higher than GDP.
+		2 = potential GDP increases with a percentage of GDP per year.
+	|
+
+Total labour balance=
+	SUM(Labour balance[sectors!])
+	~	FTE
+	~		|
+
+init potential GDP=
+	8.3889e+11
+	~	Euro/Year
+	~		|
+
+"M Policy 2: Migration ouflow male"[male all]=
+	("M Policy 2: Decreasing migration Stock male"[male all]-"M 2 Policy: Goal of migration numbers male"\
+		[male all])*decreasing factor migration policy 2
+	~	(person/Year)/Year
+	~		|
+
+"M Policy 3: Constant migration male"[male all]=
+	net migration in 2020 male[male all]
+	~	person/Year
+	~		|
+
+"M Policy 4: Increasing migration male"[male all]=
+	"M Policy 4: Increasing migration Stock male"[male all]
+	~	person/Year
+	~		|
+
+"M Policy 4: Increasing migration Stock male"[male all]= INTEG (
+	"M Policy 4: Migration inflow male"[male all],
+		net migration in 2020 male[male all])
+	~	person/Year
+	~		|
+
+"M Policy 4: Migration inflow male"[male all]=
+	("M 4 Policy: Goal of migration numbers male"[male all]-"M Policy 4: Increasing migration Stock male"\
+		[male all])*increasing factor migration policy 4
+	~	person/(Year*Year)
+	~		|
+
+"M Policy 5: Adapting migration male"[male all]=
+	"M Policy 5: Adapting migration Stock male"[male all]
+	~	person/Year
+	~		|
+
+"M Policy 5: Adapting migration Stock male"[male all]= INTEG (
+	"M Policy 5: Migration inflow male"[male all]-"M Policy 5: Migration ouflow male"[male all\
+		],
+		net migration in 2020 male[male all])
+	~	person/Year
+	~		|
+
+male net migration[male all]=
+	net migration male[male all]
+	~	person/Year
+	~		|
+
+M 4 Policy Goal higher percentage=
+	1.5
+	~	Dmnl
+	~		|
+
+increasing factor migration policy 4=
+	0.01
+	~	1/Year
+	~		|
+
+Policy Switch Migration=
+	3
+	~	Dmnl
+	~	1 = No migration policy
+		2 = Decreasing migration policy
+		3 = Constant migration policy
+		4 = Increasing migration policy
+		5 = adapting migration
+		6 = Migration with maximum
+	|
+
+lookup no migration(
+	[(0,0)-(106,10)],(0,0),(106,0))
+	~	person/Year
+	~		|
+
+decreasing factor migration policy 2=
+	0.01
+	~	1/Year
+	~		|
+
+"M 2 Policy: Goal of migration numbers male"[male all]=
+	M 2 Policy Goal lower percentage*net migration in 2020 male[male all]
+	~	person/Year
+	~		|
+
+"M 4 Policy: Goal of migration numbers male"[male all]=
+	M 4 Policy Goal higher percentage*net migration in 2020 male[male all]
+	~	person/Year
+	~		|
+
+"T Policy 3: Ending age"=
+	50
+	~	Year
+	~		|
+
+"T policy 3: Starting age"=
+	25
+	~	Year
+	~		|
+
+"M Policy 1: No migration male"[male all]=
+	lookup no migration(male age groups[male all])
+	~	person/Year
+	~		|
+
+Target policy outcome male[male all]=
+	IF THEN ELSE(Policy Switch Targeting ages in migration=1, "T Policy 1: Target all ages"\
+		[male all] , IF THEN ELSE(Policy Switch Targeting ages in migration=2, "T Policy 2: Target only working age migrants"\
+		[male all] , IF THEN ELSE(Policy Switch Targeting ages in migration=3, "T Policy 3: Target workers of specific age"\
+		[male all] , 0 ) ) )
+	~	Dmnl
+	~		|
+
+M 2 Policy Goal lower percentage=
+	0.67
+	~	Dmnl
+	~		|
+
+"M Policy 2: Decreasing migration male"[male all]=
+	"M Policy 2: Decreasing migration Stock male"[male all]
+	~	person/Year
+	~		|
+
+"M Policy 2: Decreasing migration Stock male"[male all]= INTEG (
+	-"M Policy 2: Migration ouflow male"[male all],
+		net migration in 2020 male[male all])
+	~	person/Year
+	~		|
+
+labour balance on migration coefficient=
+	0.005
+	~	Dmnl
+	~		|
+
+Policy Switch Targeting ages in migration=
+	1
+	~	Dmnl
+	~	1 = Target all ages policy
+		2 = Target only working age migrants policy
+		3 = Target workers of specific age
+	|
+
+"T Policy 1: Target all ages"[male all]=
+	1
+	~	Dmnl
+	~		|
+
+s industry:
+	Industry sector
+	~	
+	~		|
+
+s service:
+	Service sector
+	~	
+	~		|
+
+sectors:
+	Industry sector, Service sector
+	~	
+	~		|
+
+exogenous trend in capital=
+	0.005
+	~	1/Year
+	~		|
+
+exogenous trend in technology=
+	0.005
+	~	1/Year
+	~		|
+
+capital on productivity coefficient=
+	160
+	~	Euro/(FTE*Month)/Year
+	~		|
+
+Wages on capital coefficient=
+	10
+	~	Dmnl
+	~		|
+
+Wages on technology coefficient=
+	2.5
+	~	Dmnl
+	~		|
+
+exogenous trend in human capital=
+	0.01
+	~	1/Year
+	~		|
+
+wages on productivity coefficient=
+	3
+	~	Dmnl
+	~		|
+
+technology on productivity coefficient=
+	2900
+	~	Euro/(FTE*Month)
+	~		|
+
+human capital on productivity coefficient=
+	2900
+	~	Euro/(FTE*Month)
+	~		|
+
+init percentage female workers in Service per age[female working population]=
+	1-init percentage female workers in Industry per age[female working population]
+	~	Dmnl
+	~		|
+
+labour market entry age=
+	15
+	~	Year
+	~		|
+
+increase in male FTE per age[male all]=
+	IF THEN ELSE ( Switch FTE per age policy after starting year = 1 , starting age increase in male FTE per age boolean\
+		[male all
+	] * male working age boolean[male all] * ( maximum FTE per age - Male FTE per age[male all\
+		] ) * annual change in FTE per age due to policy
+	 , 0 )
+	~	FTE/(Year*person)
+	~		|
+
+maximum Labour Participation=
+	1
+	~	Dmnl
+	~	By definition an average Labour participation per age can not go beyond 1.
+	|
+
+starting age increase in FTE per age due to policy=
+	45
+	~	Year
+	~		|
+
+annual change in FTE per age due to policy=
+	0.01
+	~	1/Year
+	~		|
+
+annual change in labour participation due to policy=
+	0.01
+	~	1/Year
+	~		|
+
+Starting year labour participation policy=
+	2020
+	~	Year
+	~		|
+
+Switch labour participation policy after starting year=
+	IF THEN ELSE ( Time > Starting year labour participation policy , "Policy Switch - Labour participation"\
+		 , 0 )
+	~	Dmnl
+	~		|
+
+minimum FTE per age=
+	0
+	~	FTE/person
+	~	By definition an average FTE per age can not go negative.
+	|
+
+"Policy Switch - FTE per age"=
+	0
+	~	Dmnl
+	~	0 = no policy
+		1 = increase FTE policy
+	|
+
+"Policy Switch - Labour participation"=
+	0
+	~	Dmnl
+	~	0 = no policy
+		1 = increase Labour Participation policy
+	|
+
+maximum FTE per age=
+	1
+	~	FTE/person
+	~		|
+
+starting age increase in labour participation due to policy=
+	45
+	~	Year
+	~		|
+
+starting age increase in female FTE per age boolean[female all]=
+	IF THEN ELSE ( female age groups[female all] >= starting age increase in FTE per age due to policy\
+		, 1, 0 )
+	~	Dmnl
+	~		|
+
+starting age increase in female labour participation boolean[female all]=
+	IF THEN ELSE ( female age groups[female all] >= starting age increase in labour participation due to policy\
+		, 1, 0 )
+	~	Dmnl
+	~		|
+
+Starting year FTE per age policy=
+	2020
+	~	Year
+	~	Note: Model starts at 2020.
+	|
+
+starting age increase in male labour participation boolean[male all]=
+	IF THEN ELSE ( male age groups[male all] >= starting age increase in labour participation due to policy\
+		, 1, 0 )
+	~	Dmnl
+	~		|
+
+minimum Labour Participation=
+	0
+	~	Dmnl
+	~	By definition an average Labour participation per age can not go negative.
+	|
+
+starting age increase in male FTE per age boolean[male all]=
+	IF THEN ELSE ( male age groups[male all] >= starting age increase in FTE per age due to policy\
+		, 1, 0 )
+	~	Dmnl
+	~		|
+
+Influence of Healthcare level on death rate 1(
+	[(0,0)-(125,0.2)],(0,0),(65,0),(95,0.1),(125,0))
+	~	1/Year
+	~		|
+
+total female population=SUM(Female population[female all!])
+	~	person
+	~		|
+
+male deaths[male all]=
+	MAX( 0, Male population[male all]*male death rate per age[male all ] )
+	~	person/Year
+	~		|
+
+female total fertile population=SUM(Female population[female fertile ages!])
+	~	person
+	~		|
+
+INIT female population[female all]=lookup Init female population(female age groups[female all\
+		])
+	~	person
+	~		|
+
+life expectancy=(male life epectancy*total male population+female life expectancy*total female population\
+		)/Total population
+	~	Year
+	~		|
+
+male ageing[male all]=Male population[male all]/time in cohort
+	~	person/Year
+	~		|
+
+total female deaths per year=SUM( female deaths[female all!] )
+	~	person/Year
+	~		|
+
+female ageing[female all]=Female population[female all]/time in cohort
+	~	person/Year
+	~		|
+
+female deaths[female all]=
+	MAX(0, Female population[female all] * female death rate per age[female all] )
+	~	person/Year
+	~		|
+
+total male population=SUM(Male population[male all!])
+	~	person
+	~		|
+
+Total population=total female population+total male population
+	~	person
+	~		|
+
+total male deaths per year=SUM( male deaths[male all!] )
+	~	person/Year
+	~		|
+
+lookup Init female population(
+	[(0,0)-(106,200000)], (0.5,82717), (1.5,82982), (2.5,83727), (3.5,85442), (4.5,85109\
+		), (5.5,87866), (6.5,85677), (7.5,88212), (8.5,89928), (9.5,92871), (10.5,92865), (\
+		11.5,93080), (12.5,91838), (13.5,92965), (14.5,94106), (15.5,97121), (16.5,100080),\
+		 (17.5,101054), (18.5,104330), (19.5,110345), (20.5,109356), (21.5,108989), (22.5,106985\
+		), (23.5,106212), (24.5,107378), (25.5,110507), (26.5,110803), (27.5,111847), (28.5\
+		,113466), (29.5,113743), (30.5,111015), (31.5,109417), (32.5,108871), (33.5,109414)\
+		, (34.5,106720), (35.5,104792), (36.5,102283), (37.5,102457), (38.5,104932), (39.5,\
+		106167), (40.5,102787), (41.5,102998), (42.5,101643), (43.5,101926), (44.5,103232),\
+		 (45.5,107835), (46.5,111471), (47.5,120512), (48.5,125298), (49.5,130511), (50.5,132630\
+		), (51.5,127180), (52.5,125234), (53.5,125793), (54.5,126935), (55.5,129248), (56.5\
+		,126880), (57.5,124789), (58.5,123348), (59.5,119644), (60.5,118246), (61.5,114647)\
+		, (62.5,112104), (63.5,109425), (64.5,106968), (65.5,104287), (66.5,102165), (67.5,\
+		101779), (68.5,97168), (69.5,97395), (70.5,97695), (71.5,99419), (72.5,104012), (73.5\
+		,105706), (74.5,74842), (75.5,77014), (76.5,71692), (77.5,65098), (78.5,60684), (79.5\
+		,60667), (80.5,57163), (81.5,53698), (82.5,48359), (83.5,45766), (84.5,42062), (85.5\
+		,38993), (86.5,35196), (87.5,32630), (88.5,28597), (89.5,25494), (90.5,20728), (91.5\
+		,17622), (92.5,13884), (93.5,11276), (94.5,8624), (95.5,6756), (96.5,4848), (97.5,3448\
+		), (98.5,2279), (99.5,1549), (100.5,881), (101.5,497), (102.5,299), (103.5,155), (104.5\
+		,79), (105.5,95)
+	)
+	~	person
+	~		|
+
+lookup Init male population(
+	[(0,0)-(106,200000)],(0.5,86780),(1.5,86936),(2.5,88224),(3.5,89877),(4.5,89678),(5.5\
+		,91715),(6.5,90538),(7.5,92757),(8.5,94859),(9.5,97000),(10.5,97716),(11.5,98121),(\
+		12.5,95795),(13.5,97984),(14.5,98734),(15.5,101456),(16.5,105340),(17.5,106095),(18.5\
+		,109193),(19.5,114144),(20.5,113176),(21.5,112662),(22.5,109312),(23.5,110236),(24.5\
+		,110279),(25.5,114006),(26.5,114184),(27.5,115804),(28.5,116870),(29.5,117735),(30.5\
+		,113052),(31.5,112150),(32.5,112141),(33.5,110858),(34.5,108465),(35.5,106816),(36.5\
+		,103411),(37.5,103678),(38.5,104855),(39.5,106437),(40.5,102613),(41.5,102353),(42.5\
+		,100590),(43.5,101906),(44.5,101960),(45.5,106340),(46.5,109926),(47.5,118629),(48.5\
+		,125116),(49.5,130430),(50.5,133557),(51.5,127742),(52.5,126700),(53.5,127005),(54.5\
+		,129050),(55.5,130710),(56.5,128205),(57.5,124920),(58.5,123328),(59.5,119520),(60.5\
+		,117917),(61.5,114274),(62.5,110971),(63.5,108696),(64.5,104550),(65.5,102944),(66.5\
+		,100458),(67.5,99719),(68.5,95529),(69.5,94604),(70.5,94637),(71.5,96267),(72.5,98898\
+		),(73.5,100306),(74.5,69437),(75.5,70595),(76.5,65129),(77.5,57948),(78.5,52936),(79.5\
+		,51437),(80.5,46393),(81.5,42774),(82.5,36940),(83.5,33443),(84.5,29458),(85.5,25719\
+		),(86.5,21808),(87.5,19057),(88.5,15723),(89.5,12984),(90.5,9910),(91.5,7716),(92.5\
+		,5847),(93.5,4377),(94.5,3134),(95.5,2099),(96.5,1514),(97.5,926),(98.5,554),(99.5,\
+		342),(100.5,734),(101.5,193),(102.5,93),(103.5,58),(104.5,30),(105.5,11))
+	~	person
+	~		|
+
+average number of children per female per year=
+	female fertility rate/female fertility years
+	~	1/Year
+	~		|
+
+female age groups[female all]=0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5,\
+		 11.5, 12.5, 13.5, 14.5, 15.5, 16.5, 17.5, 18.5, 19.5, 20.5, 21.5, 22.5, 23.5, 24.5\
+		, 25.5, 26.5, 27.5,	28.5, 29.5, 30.5, 31.5,	32.5, 33.5, 34.5, 35.5, 36.5, 37.5, 38.5\
+		, 39.5, 40.5, 41.5, 42.5, 43.5, 44.5, 45.5, 46.5, 47.5, 48.5, 49.5, 50.5, 51.5, 52.5\
+		, 53.5,	54.5, 55.5, 56.5, 57.5, 58.5, 59.5, 60.5, 61.5, 62.5, 63.5, 64.5, 65.5, 66.5\
+		, 67.5,	68.5, 69.5, 70.5, 71.5, 72.5, 73.5, 74.5, 75.5, 76.5, 77.5, 78.5, 79.5, 80.5\
+		, 81.5,	82.5, 83.5, 84.5, 85.5, 86.5, 87.5, 88.5, 89.5,	90.5, 91.5, 92.5, 93.5, 94.5\
+		, 95.5,	96.5, 97.5, 98.5, 99.5, 100.5, 101.5, 102.5, 103.5, 104.5, 105.5
+	~	Year
+	~		|
+
+female all:
+	fage0, fage1, fage2, fage3, fage4, fage5, fage6, fage7, fage8, fage9, fage10, fage11\
+		, fage12, fage13, fage14, fage15, fage16, fage17, fage18, fage19, fage20, fage21, fage22\
+		, fage23, fage24, fage25, fage26, fage27, fage28, fage29, fage30, fage31, fage32, fage33\
+		, fage34, fage35, fage36, fage37, fage38, fage39, fage40, fage41, fage42, fage43, fage44\
+		, fage45, fage46, fage47, fage48, fage49, fage50, fage51, fage52, fage53, fage54, fage55\
+		, fage56, fage57, fage58, fage59, fage60, fage61, fage62, fage63, fage64, fage65, fage66\
+		, fage67, fage68, fage69, fage70, fage71, fage72, fage73, fage74, fage75, fage76, fage77\
+		, fage78, fage79, fage80, fage81, fage82, fage83, fage84, fage85, fage86, fage87, fage88\
+		, fage89, fage90, fage91, fage92, fage93, fage94,fage95, fage96, fage97, fage98, fage99\
+		, fage100, fage101, fage102, fage103, fage104, fage105
+	~	Year
+	~		|
+
+female all but youngest:
+	fage1, fage2, fage3, fage4, fage5, fage6, fage7, fage8, fage9, fage10, fage11, fage12\
+		, fage13, fage14, fage15, fage16, fage17, fage18, fage19, fage20, fage21, fage22, fage23\
+		, fage24, fage25, fage26, fage27, fage28, fage29, fage30, fage31, fage32, fage33, fage34\
+		, fage35, fage36, fage37, fage38, fage39, fage40, fage41, fage42, fage43, fage44, fage45\
+		, fage46, fage47, fage48, fage49, fage50, fage51, fage52, fage53, fage54, fage55, fage56\
+		, fage57, fage58, fage59, fage60, fage61, fage62, fage63, fage64, fage65, fage66, fage67\
+		, fage68, fage69, fage70, fage71, fage72, fage73, fage74, fage75, fage76, fage77, fage78\
+		, fage79, fage80, fage81, fage82, fage83, fage84, fage85, fage86, fage87, fage88, fage89\
+		, fage90, fage91, fage92, fage93, fage94,fage95, fage96, fage97, fage98, fage99, fage100\
+		, fage101, fage102, fage103, fage104, fage105
+	~	
+	~		|
+
+female fertile ages:
+	fage15, fage16, fage17, fage18, fage19, fage20, fage21, fage22, fage23, fage24, fage25\
+		, fage26, fage27, fage28, fage29, fage30, fage31, fage32, fage33, fage34, fage35, fage36\
+		, fage37, fage38, fage39, fage40, fage41, fage42, fage43, fage44, fage45, fage46, fage47\
+		, fage48, fage49, fage50
+	~	
+	~		|
+
+female fertility years=35
+	~	Year
+	~	From age 15-50
+	|
+
+female fraction of newborn=
+	0.487
+	~	Dmnl
+	~		|
+
+Female population[fage0]= INTEG (female births - female ageing[fage0] - female deaths\
+		[fage0] + female net migration[fage0],
+		INIT female population[fage0]) ~~|
+Female population[female all but youngest]= INTEG (female ageing[female previous cohort\
+		]- female ageing[female all but youngest] - female deaths[female all but youngest] \
+		+ female net migration[female all but youngest],
+		INIT female population[female all but youngest])
+	~	person
+	~		|
+
+female previous cohort:
+	fage0, fage1, fage2, fage3, fage4, fage5, fage6, fage7, fage8, fage9, fage10, fage11\
+		, fage12, fage13, fage14, fage15, fage16, fage17, fage18, fage19, fage20, fage21, fage22\
+		, fage23, fage24, fage25, fage26, fage27, fage28, fage29, fage30, fage31, fage32, fage33\
+		, fage34, fage35, fage36, fage37, fage38, fage39, fage40, fage41, fage42, fage43, fage44\
+		, fage45, fage46, fage47, fage48, fage49, fage50, fage51, fage52, fage53, fage54, fage55\
+		, fage56, fage57, fage58, fage59, fage60, fage61, fage62, fage63, fage64, fage65, fage66\
+		, fage67, fage68, fage69, fage70, fage71, fage72, fage73, fage74, fage75, fage76, fage77\
+		, fage78, fage79, fage80, fage81, fage82, fage83, fage84, fage85, fage86, fage87, fage88\
+		, fage89, fage90, fage91, fage92, fage93, fage94,fage95, fage96, fage97, fage98, fage99\
+		, fage100, fage101, fage102, fage103, fage104 -> female all but youngest
+	~	
+	~	(fage0-fage104) ->
+	|
+
+INIT male population[male all]=lookup Init male population(male age groups[male all])
+	~	person
+	~		|
+
+male age groups[male all]=0.5, 1.5, 2.5,	3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5\
+		, 12.5, 13.5, 14.5, 15.5, 16.5, 17.5, 18.5, 19.5, 20.5, 21.5, 22.5, 23.5, 24.5, 25.5\
+		, 26.5, 27.5,	28.5, 29.5, 30.5, 31.5,	32.5, 33.5, 34.5, 35.5, 36.5, 37.5, 38.5, 39.5\
+		, 40.5, 41.5, 42.5, 43.5, 44.5, 45.5, 46.5, 47.5, 48.5, 49.5, 50.5, 51.5, 52.5, 53.5\
+		,	54.5, 55.5, 56.5, 57.5, 58.5, 59.5, 60.5, 61.5, 62.5, 63.5, 64.5, 65.5, 66.5, 67.5\
+		, 68.5, 69.5, 70.5, 71.5, 72.5, 73.5, 74.5, 75.5, 76.5, 77.5, 78.5, 79.5, 80.5, 81.5\
+		,	82.5, 83.5, 84.5, 85.5, 86.5, 87.5, 88.5, 89.5,	90.5, 91.5, 92.5, 93.5, 94.5, 95.5\
+		,	96.5, 97.5, 98.5, 99.5, 100.5, 101.5, 102.5, 103.5, 104.5, 105.5
+	~	Year
+	~		|
+
+male all:
+	mage0, mage1, mage2, mage3, mage4, mage5, mage6, mage7, mage8, mage9, mage10, mage11\
+		, mage12, mage13, mage14, mage15, mage16, mage17, mage18, mage19, mage20, mage21, mage22\
+		, mage23, mage24, mage25, mage26, mage27, mage28, mage29, mage30, mage31, mage32, mage33\
+		, mage34, mage35, mage36, mage37, mage38, mage39, mage40, mage41, mage42, mage43, mage44\
+		, mage45, mage46, mage47, mage48, mage49, mage50, mage51, mage52, mage53, mage54, mage55\
+		, mage56, mage57, mage58, mage59, mage60, mage61, mage62, mage63, mage64, mage65, mage66\
+		, mage67, mage68, mage69, mage70, mage71, mage72, mage73, mage74, mage75, mage76, mage77\
+		, mage78, mage79, mage80, mage81, mage82, mage83, mage84, mage85, mage86, mage87, mage88\
+		, mage89, mage90, mage91, mage92, mage93, mage94,mage95, mage96, mage97, mage98, mage99\
+		, mage100, mage101, mage102, mage103, mage104, mage105
+	~	Year
+	~		|
+
+male all but youngest:
+	mage1, mage2, mage3, mage4, mage5, mage6, mage7, mage8, mage9, mage10, mage11, mage12\
+		, mage13, mage14, mage15, mage16, mage17, mage18, mage19, mage20, mage21, mage22, mage23\
+		, mage24, mage25, mage26, mage27, mage28, mage29, mage30, mage31, mage32, mage33, mage34\
+		, mage35, mage36, mage37, mage38, mage39, mage40, mage41, mage42, mage43, mage44, mage45\
+		, mage46, mage47, mage48, mage49, mage50, mage51, mage52, mage53, mage54, mage55, mage56\
+		, mage57, mage58, mage59, mage60, mage61, mage62, mage63, mage64, mage65, mage66, mage67\
+		, mage68, mage69, mage70, mage71, mage72, mage73, mage74, mage75, mage76, mage77, mage78\
+		, mage79, mage80, mage81, mage82, mage83, mage84, mage85, mage86, mage87, mage88, mage89\
+		, mage90, mage91, mage92, mage93, mage94,mage95, mage96, mage97, mage98, mage99, mage100\
+		, mage101, mage102, mage103, mage104, mage105
+	~	
+	~		|
+
+male fraction of newborn=1-female fraction of newborn
+	~	Dmnl
+	~		|
+
+Male population[mage0]= INTEG (male births - male ageing[mage0] - male deaths[mage0] \
+		+ male net migration[mage0],
+		INIT male population[mage0]) ~~|
+Male population[male all but youngest]= INTEG (male ageing[male previous cohort]- male ageing\
+		[male all but youngest] - male deaths[male all but youngest] + male net migration[male all but youngest\
+		],
+		INIT male population[male all but youngest])
+	~	person
+	~		|
+
+male previous cohort:
+	mage0, mage1, mage2, mage3, mage4, mage5, mage6, mage7, mage8, mage9, mage10, mage11\
+		, mage12, mage13, mage14, mage15, mage16, mage17, mage18, mage19, mage20, mage21, mage22\
+		, mage23, mage24, mage25, mage26, mage27, mage28, mage29, mage30, mage31, mage32, mage33\
+		, mage34, mage35, mage36, mage37, mage38, mage39, mage40, mage41, mage42, mage43, mage44\
+		, mage45, mage46, mage47, mage48, mage49, mage50, mage51, mage52, mage53, mage54, mage55\
+		, mage56, mage57, mage58, mage59, mage60, mage61, mage62, mage63, mage64, mage65, mage66\
+		, mage67, mage68, mage69, mage70, mage71, mage72, mage73, mage74, mage75, mage76, mage77\
+		, mage78, mage79, mage80, mage81, mage82, mage83, mage84, mage85, mage86, mage87, mage88\
+		, mage89, mage90, mage91, mage92, mage93, mage94,mage95, mage96, mage97, mage98, mage99\
+		, mage100, mage101, mage102, mage103, mage104 -> male all but youngest
+	~	
+	~		|
+
+time in cohort=
+	1
+	~	Year
+	~		|
+
+********************************************************
+	.Control
+********************************************************~
+		Simulation Control Parameters
+	|
+
+Policy Switch Retirement age=
+	0
+	~	Dmnl
+	~	0 = Following current trend
+		1 = Retirement age ASAP to 75
+		2 = Retirement age ASAP tp 75 with 6 months increase
+		3 = Retirement age Kunduz proposal
+		4 = Retirement age Kunduz proposal with 6 months increase
+	|
+
+FINAL TIME  = 2070
+	~	Year
+	~	The final time for the simulation.
+	|
+
+INITIAL TIME  = 2020
+	~	Year
+	~	The initial time for the simulation.
+	|
+
+SAVEPER  = 
+        TIME STEP
+	~	Year [0,?]
+	~	The frequency with which output is stored.
+	|
+
+TIME STEP  = 0.0078125
+	~	Year [0,?]
+	~	The time step for the simulation.
+	|
+
+\\\---/// Sketch information - do not modify anything except names
+V300  Do not put anything below this section - it will be ignored
+*Population
+$192-192-192,0,Arial Unicode MS|12||0-0-0|0-0-0|0-0-255|-1--1--1|255-255-255|96,96,45,2
+10,1,INIT male population,-24,551,44,19,8,131,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+10,2,male age groups,-115,455,35,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,3,2,1,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,4,lookup Init male population,49,457,57,18,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||192-128-192,0,0,0,0,0,0
+1,5,4,1,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,6,Male population,226,695,81,44,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+1,7,1,6,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+12,8,48,-138,698,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,9,11,6,4,0,0,22,0,0,0,-1--1--1,,1|(76,698)|
+1,10,11,8,100,0,0,22,0,0,0,-1--1--1,,1|(-59,698)|
+11,11,0,1,698,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,12,male births,1,716,40,10,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,13,15,6,4,0,0,22,0,0,0,-1--1--1,,1|(379,695)|
+1,14,15,6,100,0,0,22,0,0,0,-1--1--1,,1|(226,569)|
+11,15,0,379,569,6,8,34,131,0,0,1,0,0,0,0,0,0,0,0,0
+10,16,male ageing,379,587,45,10,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,17,time in cohort,1720,499,49,10,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,18,6,16,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,19,Female population,1444,692,81,44,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,20,48,1075,691,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,21,23,19,4,0,0,22,0,0,0,-1--1--1,,1|(1294,691)|
+1,22,23,20,100,0,0,22,0,0,0,-1--1--1,,1|(1156,691)|
+11,23,0,1219,691,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,24,female births,1219,709,47,10,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,25,27,19,4,0,0,22,0,0,0,-1--1--1,,1|(1597,692)|
+1,26,27,19,100,0,0,22,0,0,0,-1--1--1,,1|(1444,571)|
+11,27,0,1597,571,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,28,female ageing,1597,589,52,10,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,29,19,28,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,30,17,28,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,31,time in cohort,501,497,58,10,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,32,31,16,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,33,INIT female population,1199,545,45,19,8,131,0,20,0,0,0,0,-1--1--1,192-192-192,||B|192-192-192,0,0,0,0,0,0
+1,34,33,19,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,35,female age groups,1090,454,42,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,36,35,33,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,37,lookup Init female population,1278,456,64,18,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,38,37,33,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+12,39,48,165,450,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,40,42,6,4,0,0,22,0,0,0,-1--1--1,,1|(165,591)|
+1,41,42,39,68,0,0,22,2,0,0,-1--1--1,|||0-0-0,1|(165,492)|
+11,42,0,165,524,8,6,33,3,0,0,4,0,0,0,0,0,0,0,0,0
+10,43,male net migration,220,524,35,18,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,44,48,1378,443,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,45,47,19,4,0,0,22,0,0,0,-1--1--1,,1|(1378,594)|
+1,46,47,44,68,0,0,22,2,0,0,-1--1--1,|||0-0-0,1|(1378,493)|
+11,47,0,1378,534,8,6,33,3,0,0,4,0,0,0,0,0,0,0,0,0
+10,48,female net migration,1425,534,39,18,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,49,female age groups,1261,378,46,18,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,50,male age groups,219,380,40,18,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+12,51,48,1443,926,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,52,54,51,4,0,0,22,0,0,0,-1--1--1,,1|(1443,874)|
+1,53,54,19,100,0,0,22,0,0,0,-1--1--1,,1|(1443,781)|
+11,54,0,1443,831,8,6,33,3,0,0,4,0,0,0,0,0,0,0,0,0
+10,55,female deaths,1502,831,51,10,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,56,female death rate per age,1675,830,48,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,57,56,55,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,58,female age groups,1949,1061,46,18,8,2,0,1,-1,0,0,0,128-128-128,192-128-192,|||192-128-192,0,0,0,0,0,0
+1,59,58,56,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,60,19,55,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+12,61,48,223,908,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,62,64,61,4,0,0,22,0,0,0,-1--1--1,,1|(223,861)|
+1,63,64,6,100,0,0,22,0,0,0,-1--1--1,,1|(223,778)|
+11,64,0,223,823,8,6,33,3,0,0,4,0,0,0,0,0,0,0,0,0
+10,65,male deaths,276,823,45,10,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,66,male death rate per age,446,822,57,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,67,male age groups,695,1061,40,18,8,2,0,1,-1,0,0,0,128-128-128,192-128-192,|||192-128-192,0,0,0,0,0,0
+1,68,67,66,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,69,66,65,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,70,6,65,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,71,female total fertile population,1059,611,68,23,8,131,0,0,0,0,0,0,0,0,0,0,0,0
+1,72,71,23,1,0,0,0,0,128,0,-1--1--1,,1|(1147,658)|
+1,73,19,71,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,74,female fraction of newborn,1011,758,63,18,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,75,74,24,1,0,0,0,0,128,0,-1--1--1,,1|(1100,723)|
+10,76,average number of children per female per year,1152,843,84,27,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,77,76,24,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,78,female fertility years,1152,1001,50,18,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,79,female fertility rate,1030,1001,50,18,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,80,79,76,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,81,78,76,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,82,male fraction of newborn,-205,771,56,18,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,83,82,12,1,0,0,0,0,128,0,-1--1--1,,1|(-118,729)|
+10,84,female total fertile population,-154,634,69,18,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,85,84,11,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,86,average number of children per female per year,-92,848,84,27,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,87,86,12,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,88,female fraction of newborn,-207,905,59,18,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,89,88,82,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,90,female age groups,1564,1063,46,18,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,91,total female deaths per year,1442,1070,57,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,92,55,91,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,93,female life expectancy,1521,1510,42,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,94,91,93,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,95,total male deaths per year,223,1059,62,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,96,male life epectancy,278,1510,38,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,97,65,95,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,98,95,96,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,99,Female population,995,1393,43,18,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,100,Male population,673,1401,43,18,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,101,Total population,981,1670,57,10,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,102,life expectancy,981,1511,53,10,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,103,101,102,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,104,96,102,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,105,93,102,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,106,total male population,461,734,39,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,107,6,106,1,0,0,0,0,128,0,-1--1--1,,1|(346,730)|
+10,108,total female population,1676,740,43,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,109,19,108,1,0,0,0,0,128,0,-1--1--1,,1|(1552,729)|
+10,110,total male population,786,1668,43,18,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,111,total female population,1159,1670,47,18,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,112,110,102,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,113,111,102,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,114,111,101,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,115,110,101,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,116,Influence of Healthcare level on death rate 1,2235,829,69,27,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+10,117,Time,2286,700,29,10,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,118,Influence of Healthcare level on death rate 1,695,669,69,27,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,119,Time,1122,1294,29,10,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,120,Time,1195,1086,29,10,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,121,Time,689,471,29,10,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,122,118,66,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,123,Time,1975,440,29,10,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,124,Time,2284,588,29,10,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,125,net migration in 2020 male,320,324,61,18,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,126,net migration male,383,370,53,18,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,127,126,43,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,128,Time,968,1306,29,10,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,129,net migration female,1554,370,53,18,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,130,129,48,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,131,male lookup mortality rate,694,935,47,18,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||192-128-192,0,0,0,0,0,0
+10,132,female lookup mortality rate,1943,943,52,18,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||192-128-192,0,0,0,0,0,0
+1,133,131,66,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,134,132,56,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,135,Exogenous Healthcare level increase,2370,707,58,27,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,136,Healthcare level,1944,679,59,34,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,137,48,2160,682,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,138,140,136,4,0,0,22,0,0,0,-1--1--1,,1|(2039,682)|
+1,139,140,137,100,0,0,22,0,0,0,-1--1--1,,1|(2111,682)|
+11,140,0,2081,682,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,141,increase in healthcare,2081,708,41,18,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,142,136,56,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,143,135,141,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,144,Init healthcare level,2022,567,57,19,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,145,144,136,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,146,Healthcare level,688,569,45,18,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,147,146,66,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,148,Population,1405,257,251,82,8,131,0,10,0,0,0,0,-1--1--1,0-0-0,|72||0-0-255,0,0,0,0,0,0
+10,149,weighed female deahts per age,1603,1061,58,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,150,55,149,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,151,58,149,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,152,total weighed female deaths,1603,1254,52,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,153,149,152,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,154,152,93,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,155,weighed male deahts per age,401,1062,56,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,156,total weighed male deaths,402,1257,49,18,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,157,65,155,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,158,155,156,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,159,156,96,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,160,67,155,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,161,Scenario Switch Healthcare scenario's,2474,911,74,74,2,131,0,20,0,0,0,0,-1--1--1,0-255-255,||B|0-0-0,0,0,0,0,0,0
+10,162,Influence of Healthcare level on death rate 2,2239,941,69,27,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+1,163,116,56,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,164,162,56,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,165,161,56,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,166,Influence of Healthcare level on death rate 2,691,754,69,27,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,167,166,66,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,168,Scenario Switch Healthcare scenario's,816,823,84,18,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,169,168,66,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+\\\---/// Sketch information - do not modify anything except names
+V300  Do not put anything below this section - it will be ignored
+*Labour supply
+$192-192-192,0,Vensim Sans|12||0-0-0|0-0-0|0-0-255|-1--1--1|255-255-255|96,96,40,2
+10,1,Male population,15947,2751,49,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,2,Female population,16849,2756,49,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,3,male age groups,15618,2857,41,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,4,female age groups,16288,2911,48,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,5,Male FTE per age,2088,-355,57,36,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,6,48,2312,-357,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,7,9,6,4,0,0,22,0,0,0,-1--1--1,,1|(2263,-357)|
+1,8,9,5,100,0,0,22,0,0,0,-1--1--1,,1|(2186,-357)|
+11,9,0,2233,-357,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,10,decrease in male FTE per age,2233,-326,68,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,11,48,1849,-354,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,12,14,5,4,0,0,22,0,0,0,-1--1--1,,1|(1988,-354)|
+1,13,14,11,100,0,0,22,0,0,0,-1--1--1,,1|(1904,-354)|
+11,14,0,1940,-354,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,15,increase in male FTE per age,1940,-323,65,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,16,male age groups,1967,-500,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,17,16,5,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,18,annual change in FTE per age due to policy,3161,-193,84,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,19,5,10,1,0,0,0,0,128,0,-1--1--1,,1|(2139,-308)|
+10,20,minimum FTE per age,3765,-475,55,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,21,maximum FTE per age,3185,-474,56,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,22,male age groups,10920,2201,41,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,23,5,15,1,0,0,0,0,128,0,-1--1--1,,1|(2032,-304)|
+10,24,"Policy Switch - FTE per age",3117,15,53,53,2,131,0,20,0,0,0,0,-1--1--1,0-255-0,||B|0-0-0,0,0,0,0,0,0
+10,25,Starting year FTE per age policy,3280,7,67,23,8,131,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,26,Switch FTE per age policy after starting year,3281,-133,97,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,27,25,26,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,28,24,26,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,29,starting age increase in male FTE per age boolean,1530,-213,102,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,30,starting age increase in FTE per age due to policy,2936,-23,99,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,31,29,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,32,Time,3408,4,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,33,32,26,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,34,16,29,1,0,0,0,0,128,0,-1--1--1,,1|(1627,-431)|
+10,35,female age groups,10921,2126,48,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,36,Female FTE per age,3516,-356,55,36,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+10,37,female age groups,3377,-501,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,38,37,36,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+12,39,48,3804,-356,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,40,42,39,4,0,0,22,0,0,0,-1--1--1,,1|(3736,-356)|
+1,41,42,36,100,0,0,22,0,0,0,-1--1--1,,1|(3626,-356)|
+11,42,0,3687,-356,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,43,decrease female FTE per age,3687,-325,66,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,44,48,3250,-354,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,45,47,36,4,0,0,22,0,0,0,-1--1--1,,1|(3411,-354)|
+1,46,47,44,100,0,0,22,0,0,0,-1--1--1,,1|(3312,-354)|
+11,47,0,3355,-354,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,48,increase female FTE per age,3355,-323,63,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,49,minimum FTE per age,2300,-480,59,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,50,49,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,51,20,43,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,52,maximum FTE per age,1812,-475,61,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,53,52,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,54,21,48,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,55,annual change in FTE per age due to policy,1750,-211,89,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,56,55,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,57,18,48,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,58,36,48,1,0,0,0,0,128,0,-1--1--1,,1|(3448,-302)|
+1,59,36,43,1,0,0,0,0,128,0,-1--1--1,,1|(3593,-301)|
+10,60,starting age increase in FTE per age due to policy,11421,2276,104,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,61,starting age increase in male FTE per age boolean,11433,2230,107,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,62,starting age increase in female FTE per age boolean,2937,-193,110,28,8,131,0,0,0,0,0,0,0,0,0,0,0,0
+1,63,37,62,1,0,0,0,0,128,0,-1--1--1,,1|(3008,-426)|
+10,64,starting age increase in FTE per age due to policy,1530,-33,104,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,65,64,29,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,66,30,62,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,67,62,48,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,68,Switch FTE per age policy after starting year,1852,-134,102,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,69,68,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,70,26,48,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,71,female age groups,3332,792,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,72,Female Labour Participation per age,3494,917,80,39,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+1,73,71,72,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+12,74,48,3784,918,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,75,77,74,4,0,0,22,0,0,0,-1--1--1,,1|(3719,918)|
+1,76,77,72,100,0,0,22,0,0,0,-1--1--1,,1|(3621,918)|
+11,77,0,3674,918,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,78,Decrease in Female Labour Participation,3674,949,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,79,48,3146,919,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,80,82,72,4,0,0,22,0,0,0,-1--1--1,,1|(3346,919)|
+1,81,82,79,100,0,0,22,0,0,0,-1--1--1,,1|(3218,919)|
+11,82,0,3272,919,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,83,Increase in Female Labour Participation,3272,950,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,84,minimum Labour Participation,3759,787,69,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,85,maximum Labour Participation,3109,793,71,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,86,84,78,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,87,85,83,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,88,annual change in labour participation due to policy,3085,1060,104,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,89,88,83,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,90,72,83,1,0,0,0,0,128,0,-1--1--1,,1|(3381,976)|
+1,91,72,78,1,0,0,0,0,128,0,-1--1--1,,1|(3537,959)|
+10,92,Switch labour participation policy after starting year,3190,1154,97,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,93,"Policy Switch - Labour participation",3022,1314,76,76,2,131,0,20,0,0,0,0,-1--1--1,0-255-0,||B|0-0-0,0,0,0,0,0,0
+10,94,Starting year labour participation policy,3190,1311,80,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,95,Time,3337,1310,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,96,95,92,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,97,94,92,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,98,93,92,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,99,92,83,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,100,starting age increase in female labour participation boolean,2839,1056,108,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,101,71,100,1,0,0,0,0,128,0,-1--1--1,,1|(2949,808)|
+10,102,starting age increase in labour participation due to policy,2838,1206,107,34,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,103,102,100,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,104,100,83,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,105,Time,10534,3165,30,13,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,106,Male Labour Participation per age,2065,917,79,39,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+10,107,female age groups,12407,2735,48,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+12,108,48,2377,916,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,109,111,108,4,0,0,22,0,0,0,-1--1--1,,1|(2309,916)|
+1,110,111,106,100,0,0,22,0,0,0,-1--1--1,,1|(2199,916)|
+11,111,0,2260,916,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,112,Decrease in Male Labour Participation,2260,947,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,113,48,1698,918,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,114,116,106,4,0,0,22,0,0,0,-1--1--1,,1|(1917,918)|
+1,115,116,113,100,0,0,22,0,0,0,-1--1--1,,1|(1779,918)|
+11,116,0,1842,918,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,117,Increase in Male Labour Participation,1842,949,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,118,minimum Labour Participation,2371,773,74,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,119,maximum Labour Participation,1641,776,75,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,120,119,117,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,121,118,112,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,122,annual change in labour participation due to policy,1670,1062,109,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,123,122,117,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,124,106,117,1,0,0,0,0,128,0,-1--1--1,,1|(1968,970)|
+1,125,106,112,1,0,0,0,0,128,0,-1--1--1,,1|(2155,971)|
+10,126,starting age increase in male labour participation boolean,1418,1071,101,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,127,starting age increase in labour participation due to policy,1418,1231,107,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,128,127,126,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,129,126,117,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,130,Switch labour participation policy after starting year,1765,1165,97,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,131,130,117,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,132,Available Female labour supply per age,3075,2370,87,23,8,3,0,16,0,0,0,0,-1--1--1,0-0-0,||U|0-0-0,0,0,0,0,0,0
+10,133,Male FTE per age,6737,8286,56,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,134,Male Labour Participation per age,6912,8286,88,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,135,Male population,7085,8286,49,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,136,Female FTE per age,10247,4354,65,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,137,Female Labour Participation per age,10244,4275,88,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,138,Female population,3257,2237,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,139,138,132,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,140,male age groups,1853,738,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,141,140,126,1,0,0,0,0,128,0,-1--1--1,,1|(1576,749)|
+1,142,140,106,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,143,male working age boolean,2087,-156,66,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,144,143,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,145,143,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,146,male working age boolean,2058,1166,74,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,147,female working age boolean,3490,1183,66,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,148,female working age boolean,3532,-125,66,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,149,146,112,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,150,146,117,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,151,147,83,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,152,147,78,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,153,148,48,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,154,148,43,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,155,male age groups,7481,7901,41,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,156,female age groups,13616,4162,48,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,157,female age groups,3746,1934,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,158,lookup init female percentage Industry and Service per age,3748,2105,98,34,8,131,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,159,init percentage female workers in Industry per age,3748,2281,93,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,160,157,159,1,0,0,0,0,128,0,-1--1--1,,1|(3592,2108)|
+1,161,158,159,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,162,init percentage female workers in Service per age,4053,2283,104,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,163,159,162,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,164,male age groups,11956,4347,41,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,165,Labour balance,8874,7909,36,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,166,Wages,7826,7944,36,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,167,male age groups,6696,8702,41,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,168,male age groups,11746,2826,41,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,169,lookup init male Labour participation,2064,725,87,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+10,170,lookup init female Labour participation,3493,758,87,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+10,171,lookup init female FTE per age,3515,-540,78,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,172,171,36,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,173,lookup init male FTE per age,2087,-566,70,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,174,173,5,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,175,Labour balance,14667,2760,36,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,176,Total labour balance,14517,2757,52,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,177,Total labour balance,14449,2474,52,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,178,exogenous trend increase in Female Labour Participation,2794,710,104,34,8,131,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,179,Total labour balance,13085,2442,52,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,180,178,83,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,181,Total labour balance,14438,3632,52,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,182,Total labour balance,13147,3340,52,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,183,170,72,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+1,184,169,106,0,0,0,0,0,64,1,-1--1--1,,1|(0,0)|
+10,185,exogenous trend increase in Male Labour Participation,1337,708,112,23,8,131,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,186,185,117,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,187,annual change in FTE per age due to higher wages,3686,-27,99,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,188,187,43,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,189,annual change in FTE per age due to higher wages,2233,-77,104,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,190,189,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,191,annual change in labour participation due to higher wages,3674,1271,107,34,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,192,annual change in labour participation due to higher wages,2258,1249,107,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,193,192,112,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,194,191,78,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,195,factor extra change in labour participation if retired,3886,1271,87,34,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,196,factor extra change in FTE per age if retired,3889,-28,87,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,197,196,43,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,198,195,78,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,199,factor extra change in FTE per age if retired,2436,-77,92,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,200,199,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,201,factor extra change in labour participation if retired,2465,1254,92,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,202,201,112,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,203,Available Female labour supply per age,20435,2806,92,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,204,Female population,15584,2085,49,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,205,Available Female labour supply per age,19308,2059,92,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,206,male working age boolean,16310,2943,74,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,207,female working age boolean,20443,3022,66,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,208,female deaths,21197,2378,33,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,209,time in cohort,16852,2120,33,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,210,female ageing,16908,2006,32,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,211,time in cohort,16583,2020,33,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,212,female working age boolean,16651,2004,66,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,213,female working age boolean,20676,2206,66,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,214,male age groups,16367,1786,41,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,215,female age groups,20700,1860,48,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,216,Wages,14660,2451,36,13,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,217,wages threshold for decreasing FTE per worker,4047,-211,80,34,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+10,218,wages threshold for decreasing labour participation,4005,1068,80,34,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+1,219,217,43,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,220,218,78,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,221,difference between average wages and wages threshold for labour participation,4202,1348,123,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,222,218,221,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,223,difference between average wages and wages threshold for FTE per worker,4188,54,123,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,224,217,223,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,225,223,43,1,0,0,0,0,128,0,-1--1--1,,1|(4240,-268)|
+1,226,221,78,1,0,0,0,0,128,0,-1--1--1,,1|(4149,988)|
+10,227,Female Workforce,4170,3061,68,27,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+10,228,initial female workforce per sector,4073,2893,86,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,229,228,227,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,230,init percentage unemployed,4072,2701,60,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||255-0-0,0,0,0,0,0,0
+10,231,Available Female labour supply per age,16657,3909,92,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,232,female working age boolean,16659,3907,66,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,233,230,228,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,234,Init female available workforce per sector,3749,2627,83,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,235,Available Female labour supply per age,14865,4571,92,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,236,234,228,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,237,female Unemployment rate,3076,2941,100,47,8,131,0,28,0,0,0,0,-1--1--1,0-255-0,|14|BU|255-0-0,0,0,0,0,0,0
+12,238,48,4515,3079,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,239,241,238,4,0,0,22,0,0,0,-1--1--1,,1|(4443,3079)|
+1,240,241,227,100,0,0,22,0,0,0,-1--1--1,,1|(4311,3079)|
+11,241,0,4390,3079,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,242,firing female,4390,3100,49,13,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,243,"Need for labour - relative difference between potential and actual workforce",4148,3670,114,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,244,labour demand per sector,3609,3996,67,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,245,Init female available workforce per sector,16949,5215,88,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,246,total female available workforce,3075,2671,77,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+12,247,48,3798,3059,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,248,250,227,4,0,0,22,0,0,0,-1--1--1,,1|(4029,3059)|
+1,249,250,247,100,0,0,22,0,0,0,-1--1--1,,1|(3883,3059)|
+11,250,0,3950,3059,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,251,hiring female,3950,3080,52,13,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,252,average hiring time for new workforce,3589,3147,77,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+1,253,255,227,4,0,0,22,0,0,0,-1--1--1,,1|(4296,3061)|
+1,254,255,227,100,0,0,22,0,0,0,-1--1--1,,1|(4170,2943)|
+11,255,0,4296,2943,8,6,33,3,0,0,4,0,0,0,0,0,0,0,0,0
+10,256,ageing of female workforce,4370,2943,66,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,257,Female population,10897,2723,49,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,258,female net migration,10915,2736,47,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,259,female deaths,11030,2813,33,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,260,female ageing,10096,2525,32,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,261,total female workforce per sector,4826,3739,83,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,262,227,261,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,263,average time working at same job,4669,3287,80,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+10,264,test workforce,7106,2490,40,20,3,3,0,0,0,0,0,0,0,0,0,0,0,0
+12,265,48,6786,2491,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,266,268,264,4,0,0,22,0,0,0,-1--1--1,,1|(6999,2491)|
+1,267,268,265,100,0,0,22,0,0,0,-1--1--1,,1|(6865,2491)|
+11,268,0,6926,2491,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,269,test hiring,6926,2512,41,13,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,270,48,7428,2486,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,271,273,270,4,0,0,22,0,0,0,-1--1--1,,1|(7348,2486)|
+1,272,273,264,100,0,0,22,0,0,0,-1--1--1,,1|(7213,2486)|
+11,273,0,7287,2486,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,274,test firing,7287,2507,38,13,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,275,init test workforce,7007,2322,41,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,276,275,264,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,277,test available workforce,6623,2235,53,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,278,test hiring time,6925,2690,60,13,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,279,test time working at same job,7433,2686,79,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,280,278,269,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,281,279,274,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,282,264,274,1,0,0,0,0,128,0,-1--1--1,,1|(7201,2555)|
+10,283,total female available workforce,18308,5121,82,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,284,test delta difference,7090,2773,41,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,285,test labour demand1,6868,2940,44,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,286,test total workforce,7287,2907,41,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,287,264,286,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,288,286,284,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,289,Time,6868,3087,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,290,289,285,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,291,284,269,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,292,284,274,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,293,test potential hiring workforce,6809,2358,79,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,294,277,293,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,295,264,293,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,296,293,269,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,297,TEST unemployment rate,6988,2032,503,139,8,131,0,26,0,0,0,0,-1--1--1,0-0-0,|72|B|0-0-255,0,0,0,0,0,0
+10,298,init percentage female workers in Industry per age,14623,4457,94,34,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,299,init percentage female workers in Service per age,14815,4518,94,34,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,300,init percentage female workers in Industry per age,16340,4864,94,34,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,301,init percentage female workers in Service per age,16490,5361,94,34,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,302,total female workforce,5061,4021,48,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,303,261,302,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,304,total female workforce,3075,3214,53,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,305,304,237,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,306,246,237,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,307,159,234,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,308,162,234,1,0,0,0,0,128,0,-1--1--1,,1|(3938,2488)|
+10,309,total female workforce per sector,9204,9059,88,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,310,dynamic female percentage per age in Industry,3921,5311,87,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,311,dynamic female percentage per age in Service,3921,5400,87,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,312,total female workforce per age,4412,5396,72,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,313,312,310,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,314,312,311,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,315,Female Workforce,4412,5307,47,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,316,315,312,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,317,315,311,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,318,315,310,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,319,Labour balance,11093,9637,36,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,320,Wages,10045,9671,36,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,321,Labour balance,15819,6108,36,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,322,Total labour balance,15558,6063,52,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,323,total firing,2985,4594,41,13,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,324,total hiring,2982,4527,44,13,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,325,firing female,3140,4594,58,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,326,hiring female,3137,4526,62,11,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,327,325,323,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,328,326,324,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,329,total relative difference between potential and actual workforce,4149,3998,92,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,330,dynamic female percentage per age in Industry,14803,5836,87,34,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,331,dynamic female percentage per age in Service,14985,5839,87,34,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,332,dynamic female percentage per age in Industry,11388,9837,87,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,333,dynamic female percentage per age in Service,11574,9857,87,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,334,wages threshold for decreasing FTE per worker,2474,-269,84,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,335,wages threshold for decreasing labour participation,2552,1032,84,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,336,334,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,337,335,112,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,338,difference between average wages and wages threshold for FTE per worker,2603,2,123,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,339,difference between average wages and wages threshold for labour participation,2262,1404,123,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,340,339,112,1,0,0,0,0,128,0,-1--1--1,,1|(2301,1232)|
+1,341,338,10,1,0,0,0,0,128,0,-1--1--1,,1|(2454,-173)|
+10,342,labour demand per sector,14809,6232,67,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,343,female age groups,10442,7778,48,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,344,lookup init female percentage Industry and Service per age,10466,7901,98,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,345,Available Female labour supply per age,9857,8242,92,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,346,132,246,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,347,132,234,1,0,0,0,0,128,0,-1--1--1,,1|(3450,2417)|
+12,348,48,4138,3331,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,349,351,348,4,0,0,22,0,0,0,-1--1--1,,1|(4138,3265)|
+1,350,351,227,100,0,0,22,0,0,0,-1--1--1,,1|(4138,3145)|
+11,351,0,4138,3209,8,6,33,3,0,0,4,0,0,0,0,0,0,0,0,0
+10,352,female deaths and net migration in workforce,4220,3209,91,23,40,131,0,0,-1,0,0,0,0,0,0,0,0,0
+10,353,female net migration,9596,3360,47,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,354,female deaths,4002,3327,33,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,355,dynamic female percentage per age in Industry,10095,3500,87,34,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,356,dynamic female percentage per age in Service,11183,3501,87,34,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,357,dynamic female percentage per sector per age,3628,5402,89,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,358,310,357,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,359,311,357,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,360,dynamic female percentage per sector per age,3242,3313,89,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,361,Female population,9998,2523,49,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,362,Female population,4005,3414,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,363,"female relative change working population - deaths and migration",4270,3415,111,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,364,female deaths,9904,3680,33,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,365,female net migration,9781,3784,47,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,366,362,363,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,367,354,363,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,368,363,352,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,369,227,352,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,370,244,243,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,371,total workforce per sector,4579,3791,61,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,372,261,371,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,373,371,243,1,0,0,0,0,128,0,-1--1--1,,1|(4295,3792)|
+10,374,test workforce,6419,2458,45,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,375,"1test unemployment rate",6527,2336,80,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,376,277,375,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,377,374,375,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,378,test labour demand2,6976,2946,44,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,379,Time,6975,3086,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,380,379,378,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,381,test switch labour demand,6649,2928,71,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,382,286,274,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,383,test labour demand,6897,2819,44,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,384,285,383,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,385,378,383,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,386,381,383,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,387,383,284,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,388,test labour demand,7555,2600,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,389,388,274,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,390,227,256,1,0,0,0,0,128,0,-1--1--1,,1|(4312,2980)|
+10,391,time in cohort,4526,2847,33,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,392,391,256,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,393,227,242,1,0,0,0,0,128,0,-1--1--1,,1|(4298,3126)|
+1,394,263,242,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,395,labour demand per sector,10811,3316,67,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,396,female potential hiring workforce,3464,2804,66,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,397,labour demand per sector,10469,4194,67,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,398,371,329,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+1,399,244,329,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,400,132,396,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,401,227,396,1,0,0,0,0,128,0,-1--1--1,,1|(3846,2881)|
+1,402,396,251,1,0,0,0,0,128,0,-1--1--1,,1|(3612,2994)|
+1,403,252,251,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,404,Available Male labour supply per age,578,2365,85,23,8,3,0,16,0,0,0,0,-1--1--1,0-0-0,||U|0-0-0,0,0,0,0,0,0
+10,405,Male FTE per age,6828,211,56,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,406,Male Labour Participation per age,6828,523,88,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,407,Male population,750,2237,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,408,407,404,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,409,total male available workforce,579,2671,77,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,410,male Unemployment rate,580,2944,99,47,8,131,0,28,0,0,0,0,-1--1--1,0-255-0,|14|BU|0-0-0,0,0,0,0,0,0
+1,411,404,409,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,412,409,410,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,413,male age groups,1348,1925,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,414,lookup init male percentage Industry and Service per age,1366,2099,98,34,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,415,init percentage male workers in Industry per age,1366,2274,93,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,416,Init male available workforce per sctor,1367,2622,79,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,417,415,416,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,418,413,415,1,0,0,0,0,128,0,-1--1--1,,1|(1214,2101)|
+1,419,414,415,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,420,404,416,1,0,0,0,0,128,0,-1--1--1,,1|(996,2410)|
+10,421,init percentage male workers in Service per age,1673,2275,104,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,422,415,421,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,423,421,416,1,0,0,0,0,128,0,-1--1--1,,1|(1593,2479)|
+10,424,Male workforce,1857,3056,68,29,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+10,425,init percentage unemployed,1736,2691,65,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,426,initial male workforce per sector,1737,2883,86,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,427,425,426,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,428,416,426,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,429,426,424,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+12,430,48,1419,3051,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,431,433,424,4,0,0,22,0,0,0,-1--1--1,,1|(1698,3051)|
+1,432,433,430,100,0,0,22,0,0,0,-1--1--1,,1|(1519,3051)|
+11,433,0,1601,3051,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,434,hiring male,1601,3072,45,13,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,435,48,1807,3354,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,436,438,435,4,0,0,22,0,0,0,-1--1--1,,1|(1807,3282)|
+1,437,438,424,100,0,0,22,0,0,0,-1--1--1,,1|(1807,3149)|
+11,438,0,1807,3219,8,6,33,3,0,0,4,0,0,0,0,0,0,0,0,0
+10,439,male deaths and net migration in workforce,1906,3219,91,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,440,"male relative change working population - deaths and migration",1950,3448,116,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,441,male net migration,7278,3387,44,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,442,male deaths,1679,3362,58,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,443,Male population,1684,3447,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,444,Male workforce,4409,5031,45,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,445,total male workforce per age,4409,5130,72,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,446,dynamic male percentage per age in Industry,3942,5034,87,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,447,dynamic male percentage per age in Service,3944,5131,87,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,448,dynamic male percentage per sector per age,3658,5132,89,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,449,444,445,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,450,445,447,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,451,444,446,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,452,445,446,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,453,444,447,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,454,446,448,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,455,447,448,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,456,total male workforce,2713,4020,41,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,457,total male workforce,580,3218,45,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,458,457,410,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,459,dynamic male percentage per age in Industry,7890,3668,87,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,460,442,440,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,461,443,440,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,462,dynamic male percentage per sector per age,950,3352,89,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,463,424,439,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,464,total male workforce per sector,2464,3739,83,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,465,424,464,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,466,464,456,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,467,469,424,4,0,0,22,0,0,0,-1--1--1,,1|(1992,3056)|
+1,468,469,424,100,0,0,22,0,0,0,-1--1--1,,1|(1857,2919)|
+11,469,0,1992,2919,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,470,ageing of male workforce,1992,2950,58,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,471,time in cohort,2158,2840,33,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,472,471,470,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,473,424,470,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+12,474,48,2173,3074,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,475,477,474,4,0,0,22,0,0,0,-1--1--1,,1|(2105,3074)|
+1,476,477,424,100,0,0,22,0,0,0,-1--1--1,,1|(1988,3074)|
+11,477,0,2057,3074,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,478,firing male,2057,3095,42,13,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,479,"Need for labour - relative difference between potential and actual workforce",1838,3732,114,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,480,424,478,1,0,0,0,0,128,0,-1--1--1,,1|(1978,3123)|
+10,481,male potential hiring workforce,1027,2800,66,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,482,404,481,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,483,424,481,1,0,0,0,0,128,0,-1--1--1,,1|(1464,2862)|
+1,484,481,434,1,0,0,0,0,128,0,-1--1--1,,1|(1255,3017)|
+10,485,average hiring time for new workforce,1169,3172,82,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,486,485,434,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,487,average time working at same job,2306,3282,85,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,488,487,478,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,489,labour demand per sector,8414,3301,67,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,490,total male workforce per sector,4819,3936,88,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,491,490,371,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,492,hiring male,2827,4527,54,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,493,firing male,2833,4593,51,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,494,492,324,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,495,493,323,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,496,Unemployment rate,3029,5812,75,26,8,131,0,28,0,0,0,0,-1--1--1,0-255-0,|14|BU|0-0-0,0,0,0,0,0,0
+10,497,total female available workforce,3131,5567,82,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,498,total male available workforce,2916,5570,82,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,499,498,496,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,500,497,496,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,501,total male workforce,2735,5573,45,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,502,total female workforce,3315,5570,53,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,503,502,496,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,504,501,496,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,505,Male workforce,9251,4669,59,31,8,130,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,506,Female Workforce,9476,4670,47,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,507,total workforce per sector in person,2984,4883,77,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,508,total male workforce per sector,2815,4731,88,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,509,total female workforce per sector,3145,4731,88,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,510,508,507,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,511,509,507,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,512,Average FTE,2745,-660,283,69,8,131,0,10,0,0,0,0,-1--1--1,0-0-0,|72||0-0-255,0,0,0,0,0,0
+10,513,Labour participation,2738,482,296,139,8,3,0,10,0,0,0,0,-1--1--1,0-0-0,|72||0-0-255,0,0,0,0,0,0
+10,514,Workforce,2736,1975,260,71,8,131,0,10,0,0,0,0,-1--1--1,0-0-0,|72||0-0-255,0,0,0,0,0,0
+10,515,average wages,3914,-143,58,13,8,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,516,515,43,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,517,Wages,4082,119,36,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,518,517,515,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+1,519,515,223,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,520,average wages,2543,-350,37,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,521,average wages,3927,1154,37,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,522,average wages,2563,938,37,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,523,522,112,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,524,521,78,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,525,521,221,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,526,520,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,527,labour market entry age,7682,-596,62,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,528,labour market entry age,9102,-606,62,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,529,Retirement age policies,7682,-700,66,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,530,Retirement age policies,9096,-695,66,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,531,labour market entry age,6014,2019,62,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,532,Retirement age policies,6058,1957,66,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,533,Retirement age policy,6178,2021,66,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,534,labour market entry age,6581,2098,62,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,535,Retirement age policy,6524,2288,66,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,536,total Average FTE per male,2226,231,69,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,537,"T policy 3: Starting age",6319,2025,53,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,538,"T Policy 3: Ending age",6462,2026,49,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,539,total Average FTE per female,3662,229,69,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,540,test delay of firing when there is labour surplus,7653,2713,95,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,541,540,274,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,542,Female FTE per age,9368,329,65,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,543,Male population,1894,230,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,544,543,536,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,545,Female population,3360,228,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,546,545,539,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,547,total Average FTE per female,4689,4091,73,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,548,total Average FTE per male,4442,4091,73,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,549,547,371,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,550,548,371,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,551,total Average FTE per female,10807,3206,73,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,552,total Average FTE per male,8401,3203,73,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,553,total workforce in FTE,2993,5027,61,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,554,508,553,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,555,509,553,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,556,total Average FTE per female,3204,4870,73,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,557,total Average FTE per male,2767,4867,73,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,558,557,553,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,559,556,553,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,560,male emigration number,1678,3293,70,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,561,560,440,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,562,female emigration number,3997,3241,78,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,563,562,363,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,564,Female Workforce,4318,5847,47,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,565,Male workforce,4307,5777,45,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,566,total workforce per sector in person,4301,5702,81,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,567,male percentage of total workforce,3915,5704,77,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,568,female percentage of total workforce,3915,5848,84,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,569,566,567,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,570,565,567,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,571,564,568,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,572,566,568,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,573,male percentage of total workforce,8396,3081,82,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,574,"Preference for workers - relative difference between wages in sectors",4122,4437,108,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,575,Wages in Industry,3836,4436,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,576,Wages in Service,4393,4436,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,577,Sum of wages in sectors,4027,4635,65,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,578,Wages,4026,4814,36,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,579,578,577,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,580,Number of sectors,4216,4802,44,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,581,Average wages per sector,4217,4636,59,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,582,577,581,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,583,580,581,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,584,575,574,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,585,581,574,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,586,576,574,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,587,577,574,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,588,"Preference for workers - relative difference between wages in sectors",3802,3675,108,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,589,"Preference for workers - relative difference between wages in sectors",1454,3575,108,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,590,589,434,1,0,0,0,0,128,0,-1--1--1,,1|(1490,3356)|
+10,591,hiring per sector,2981,4372,40,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,592,firing per sector,2978,4449,37,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,593,492,591,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,594,326,591,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,595,325,592,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,596,493,592,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,597,Male Labour Participation per age,578,2240,88,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,598,597,404,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,599,Female Labour Participation per age,3074,2236,88,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,600,599,132,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,601,Female Labour Participation per age,4724,2753,88,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,602,Female population,4777,2586,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,603,Female Workforce,4771,2428,47,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,604,Female workforce per age,5031,2428,71,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,605,603,604,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,606,Actual female labour participation per age,5031,2588,83,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,607,602,606,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,608,604,606,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,609,Difference between theoretical and actual labour participation for females,5032,2754,123,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,610,601,609,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,611,606,609,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,612,female firing due to decrease in labour participation when getting older,5031,2979,116,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,613,609,612,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,614,delay factor of firing due to decrease in labour participation when getting older,4921,3280,127,34,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,615,614,242,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,616,delay factor of firing due to decrease in labour participation when getting older,2522,3277,127,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,617,Male workforce,2382,2447,45,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,618,Male population,2388,2608,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,619,Male Labour Participation per age,2335,2771,88,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,620,Male workforce per age,2639,2448,61,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,621,Actual male labour participation per age,2639,2609,83,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,622,Difference between theoretical and actual labour participation for males,2639,2775,122,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,623,male firing due to decrease in labour participation when getting older,2640,2948,118,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,624,619,622,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,625,618,621,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,626,617,620,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,627,620,621,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,628,621,622,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,629,male firing due to decrease in labour participation when getting older,8027,3071,122,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,630,5,536,1,0,0,0,0,128,0,-1--1--1,,1|(2016,-34)|
+1,631,36,539,1,0,0,0,0,128,0,-1--1--1,,1|(3442,-54)|
+1,632,612,242,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,633,hiring male per sector,2642,4527,61,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,634,hiring female per sector,3339,4526,68,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,635,492,633,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,636,326,634,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,637,622,623,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,638,dynamic male percentage per age in Industry,8228,3187,87,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,639,dynamic male percentage per sector per age,8218,3205,89,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,640,623,478,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,641,616,478,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,642,dynamic male percentage per sector per age,8357,3202,89,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,643,617,623,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,644,440,439,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,645,603,612,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,646,588,251,1,0,0,0,0,128,0,-1--1--1,,1|(3779,3353)|
+10,647,Need for labour Industry,1118,3634,64,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,648,Need for labour Service,952,3715,64,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,649,479,647,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,650,479,648,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,651,dynamic male percentage per sector correction in times of labour surplus,951,3498,118,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,652,462,651,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,653,647,651,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,654,648,651,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,655,651,434,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,656,Available Male labour supply per age,2757,5184,90,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,657,Available Female labour supply per age,3215,5184,92,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,658,Total labour supply in FTE,3010,5299,52,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,659,656,658,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,660,557,658,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,661,556,658,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,662,657,658,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,663,dynamic female percentage per age in Industry,8357,5171,87,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,664,dynamic female percentage per sector per age,8826,5163,89,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,665,dynamic male percentage per sector per age,8344,5165,89,34,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,666,dynamic percentage female workforce per sector,5210,3741,85,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,667,261,666,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,668,302,666,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,669,dynamic percentage male workforce per sector,2865,3740,81,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,670,464,669,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,671,456,669,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,672,dynamic percentage male workforce per sector,2705,5036,86,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,673,dynamic percentage female workforce per sector,3268,5039,86,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,674,672,658,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,675,673,658,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,676,Need for labour Industry,3409,3716,68,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,677,Need for labour Service,3241,3707,68,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,678,dynamic female percentage per sector correction in times of labour surplus,3243,3485,125,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,679,676,678,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,680,677,678,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,681,678,251,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,682,360,678,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,683,Labour dependency ratio,2233,4676,83,26,8,131,0,28,0,0,0,0,-1--1--1,0-255-0,|14|BU|0-0-0,0,0,0,0,0,0
+10,684,Population,7354,4490,53,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,685,total workforce per sector in person,2268,4369,81,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,686,total female population,7300,4377,53,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,687,total male population,7460,4377,49,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,688,Total population,2129,4514,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,689,688,683,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,690,total workforce in person,2368,4519,70,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,691,685,690,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,692,690,683,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+\\\---/// Sketch information - do not modify anything except names
+V300  Do not put anything below this section - it will be ignored
+*Labour demand
+$192-192-192,0,Vensim Sans|12||0-0-0|0-0-0|0-0-255|255-255-255|255-255-255|96,96,92,0
+10,1,potential GDP,1708,140,40,20,3,3,0,0,0,0,0,0,0,0,0,0,0,0
+12,2,48,1493,142,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,3,5,1,4,0,0,22,0,0,0,-1--1--1,,1|(1628,142)|
+1,4,5,2,68,0,0,22,2,0,0,-1--1--1,|||0-0-0,1|(1547,142)|
+11,5,0,1583,142,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,6,increase in GDP,1583,161,64,11,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,7,init potential GDP per sector,1712,37,76,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,8,7,1,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,9,Scenario Switch GDP scenario's,769,2,60,60,2,131,0,20,0,0,0,0,-1--1--1,0-255-255,||B|255-0-0,0,0,0,0,0,0
+10,10,gap between GDP and potential GDP,284,251,73,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,11,init potential GDP,1810,-63,51,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||255-0-0,0,0,0,0,0,0
+1,12,11,7,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,13,labour demand per sector,2172,367,69,24,8,131,0,0,0,0,0,0,0,0,0,0,0,0
+1,14,1,13,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,15,Labour balance,2172,593,38,26,8,131,0,28,0,0,0,0,-1--1--1,0-255-0,|14|BU|0-0-0,0,0,0,0,0,0
+1,16,13,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,17,GDP,1584,369,19,13,8,3,0,4,0,0,0,0,-1--1--1,0-255-0,|||0-0-0,0,0,0,0,0,0
+10,18,Total labour balance,2172,738,49,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,19,15,18,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,20,Productivity in Industry,1332,569,62,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,21,Productivity in Service,1335,648,62,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,22,Productivity per sector,1583,649,64,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,23,20,22,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,24,21,22,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,25,22,17,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,26,22,13,1,0,0,0,0,128,0,-1--1--1,,1|(2202,813)|
+10,27,"GDP Scenario 3: gap above GDP",749,188,81,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,28,9,6,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,29,adjustment time potential GDP to GDP,284,188,86,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,30,29,27,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,31,Time,668,228,30,13,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,32,1,27,1,0,0,0,0,128,0,-1--1--1,,1|(1237,315)|
+1,33,17,27,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,34,10,27,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,35,"Init percentage GDP Industry/Service",1582,-63,80,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,36,35,7,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,37,months per year,2173,240,47,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,38,37,13,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,39,total workforce per sector in person,1816,673,74,66,8,130,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,40,"GDP & Labour balance",1616,-189,534,90,8,131,0,10,0,0,0,0,-1--1--1,0-0-0,|72||0-0-255,0,0,0,0,0,0
+10,41,months per year,1424,484,52,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,42,41,17,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,43,total workforce in FTE,1912,369,66,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,44,Total labour supply in FTE,1915,592,57,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,45,44,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,46,43,17,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,47,"GDP Scenario 2: exogenous trend (% times GDP)",594,371,80,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,48,17,47,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,49,47,6,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,50,"increase in potential GDP by % of GDP",279,370,81,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,51,50,47,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,52,Time,1414,-30,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,53,52,6,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,54,Total potential GDP,2306,141,58,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,55,1,54,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,56,Time,1249,-108,30,13,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,57,Time,1020,-84,30,13,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,58,Time,1664,446,30,13,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,59,"fixed GDP 2020-2024",1250,-29,41,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,60,Time,1036,-135,30,13,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,61,59,6,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,62,35,6,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,63,52,59,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,64,GDP Scenario 1 exogenous gap,645,556,62,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+1,65,64,6,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,66,27,6,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,67,Total GDP,1686,288,40,13,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,68,17,67,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+\\\---/// Sketch information - do not modify anything except names
+V300  Do not put anything below this section - it will be ignored
+*Productivity
+$192-192-192,0,Vensim Sans|12||0-0-0|0-0-0|0-0-255|255-255-255|255-255-255|96,96,54,2
+10,1,capital on productivity coefficient,1497,289,89,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,2,technology on productivity coefficient,1492,496,91,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,3,human capital on productivity coefficient,1533,1038,91,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,4,Wages on capital coefficient,875,201,68,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+10,5,Wages on technology coefficient,542,638,85,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+10,6,wages on productivity coefficient,1543,1214,87,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,7,exogenous trend in human capital,846,1026,78,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+10,8,exogenous trend in capital,928,11,68,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+10,9,exogenous trend in technology,681,459,78,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+10,10,Labour balance,2433,1571,36,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,11,Capital,1263,168,51,27,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+10,12,init capital,1168,51,46,13,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,13,12,11,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+12,14,48,1045,171,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,15,17,11,4,0,0,22,0,0,0,-1--1--1,,1|(1173,171)|
+1,16,17,14,100,0,0,22,0,0,0,-1--1--1,,1|(1096,171)|
+11,17,0,1128,171,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,18,increase in capital,1128,202,44,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,19,48,1507,168,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,20,22,19,4,0,0,22,0,0,0,-1--1--1,,1|(1449,168)|
+1,21,22,11,100,0,0,22,0,0,0,-1--1--1,,1|(1359,168)|
+11,22,0,1410,168,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,23,decrease in capital,1410,199,46,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,24,8,18,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,25,4,18,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,26,baseline capital,1410,52,34,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,27,26,23,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,28,11,23,1,0,0,0,0,128,0,-1--1--1,,1|(1336,139)|
+10,29,return to baseline of capital delay,1566,55,82,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,30,29,23,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,31,Technology,1084,611,52,29,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,32,48,814,608,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,33,35,31,4,0,0,22,0,0,0,-1--1--1,,1|(980,608)|
+1,34,35,32,100,0,0,22,0,0,0,-1--1--1,,1|(878,608)|
+11,35,0,923,608,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,36,increase in technology,923,639,45,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,37,init technology,1006,493,47,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,38,37,31,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+1,39,9,36,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,40,5,36,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,41,Human capital,1281,995,53,29,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,42,48,1052,996,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,43,45,41,4,0,0,22,0,0,0,-1--1--1,,1|(1187,996)|
+1,44,45,42,100,0,0,22,0,0,0,-1--1--1,,1|(1105,996)|
+11,45,0,1140,996,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,46,increase in human capital,1140,1027,74,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,47,init human capital,1206,878,48,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,48,47,41,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+1,49,7,46,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,50,Wages,2077,1244,36,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,51,increase in wages,982,328,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,52,51,18,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,53,51,36,1,0,0,0,0,128,0,-1--1--1,,1|(881,471)|
+10,54,Productivity in Industry,1990,364,53,30,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+10,55,Productivity in Service,1990,1092,50,29,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+10,56,init productivity in industry,1925,227,79,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|255-0-0,0,0,0,0,0,0
+10,57,init productivity in service,1914,958,69,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|255-0-0,0,0,0,0,0,0
+1,58,56,54,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+1,59,57,55,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+12,60,48,1721,359,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,61,63,54,4,0,0,22,0,0,0,-1--1--1,,1|(1886,359)|
+1,62,63,60,68,0,0,22,2,0,0,-1--1--1,|||0-0-0,1|(1784,359)|
+11,63,0,1829,359,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,64,increase in productivity in industry,1829,390,93,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,65,48,1735,1094,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,66,68,55,4,0,0,22,0,0,0,-1--1--1,,1|(1884,1094)|
+1,67,68,65,68,0,0,22,2,0,0,-1--1--1,|||0-0-0,1|(1788,1094)|
+11,68,0,1822,1094,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,69,increase in productivity in service,1822,1125,87,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,70,11,64,1,0,0,0,0,128,0,-1--1--1,,1|(1495,336)|
+1,71,1,64,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,72,2,64,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,73,3,69,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,74,6,69,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,75,12,26,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,76,increase in wages,1204,1260,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,77,76,69,1,0,0,0,0,128,0,-1--1--1,,1|(1523,1149)|
+1,78,36,64,1,0,0,0,0,128,0,-1--1--1,,1|(1361,448)|
+1,79,46,69,1,0,0,0,0,128,0,-1--1--1,,1|(1406,1096)|
+10,80,Productivity,1369,-158,285,76,8,131,0,10,0,0,0,0,-1--1--1,0-0-0,|72||0-0-255,0,0,0,0,0,0
+10,81,Wages,448,838,36,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,82,Wages in Industry,614,789,36,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,83,Wages in Service,618,895,36,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,84,81,83,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,85,81,82,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,86,Wages in Industry,1126,346,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,87,86,18,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,88,86,36,1,0,0,0,0,128,0,-1--1--1,,1|(944,462)|
+\\\---/// Sketch information - do not modify anything except names
+V300  Do not put anything below this section - it will be ignored
+*Retirement age policies
+$192-192-192,0,Vensim Sans|12||0-0-0|0-0-0|0-0-255|255-255-255|255-255-255|96,96,86,2
+10,1,male working age boolean,1689,239,70,23,8,3,0,4,0,0,0,0,-1--1--1,0-255-0,|||0-0-0,0,0,0,0,0,0
+10,2,labour market entry age,1481,165,57,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,3,2,1,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,4,male age groups,1867,238,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,5,4,1,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,6,female working age boolean,1687,167,77,23,8,3,0,4,0,0,0,0,-1--1--1,0-255-0,|||0-0-0,0,0,0,0,0,0
+1,7,2,6,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,8,female age groups,1868,164,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,9,8,6,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,10,Policy Switch Retirement age,1197,158,68,68,2,131,0,20,0,0,0,0,-1--1--1,0-255-0,||B|0-0-0,0,0,0,0,0,0
+10,11,Time,462,1684,30,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,12,TIME STEP,766,1486,50,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,13,Retirement age policy,1481,355,61,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,14,10,13,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,15,life expectancy,-339,1141,50,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,16,Time,1169,62,30,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,17,Time,11,996,30,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,18,life expectancy,3496,463,50,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,19,Time,598,1613,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,20,"Validation test - RT peek",797,1614,62,23,8,131,0,4,0,0,0,0,-1--1--1,255-255-128,|||0-0-0,0,0,0,0,0,0
+10,21,Time,1155,1024,30,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,22,19,20,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,23,"65 year mark",2278,1205,51,13,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,24,life expectancy,2274,1295,50,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,25,"factor 8 months/1 year",2275,1388,59,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,26,target age Kunduz proposal,1993,1206,73,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,27,23,26,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,28,24,26,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,29,25,26,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,30,Time,884,696,30,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,31,"RT Policy 1: ASAP to 75 Stock",902,909,86,39,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,32,48,572,902,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,33,35,31,4,0,0,22,0,0,0,-1--1--1,,1|(756,902)|
+1,34,35,32,100,0,0,22,0,0,0,-1--1--1,,1|(641,902)|
+11,35,0,691,902,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,36,increase in RT Policy 1,691,933,56,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,37,RT at 2020,792,777,43,13,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,38,37,31,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,39,Time,832,477,30,13,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,40,max retirement age,532,993,62,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,41,yearly trigger,690,1197,52,13,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,42,FINAL TIME,510,1228,52,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,43,42,41,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,44,INITIAL TIME,509,1181,57,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,45,44,41,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,46,one year,517,1277,35,13,8,3,0,4,-1,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,47,46,41,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,48,TIME STEP,517,1131,50,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,49,48,41,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+1,50,41,36,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,51,"RT Policy 2: ASAP to 75 with 6 months increase",1480,609,99,23,8,131,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,52,40,36,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,53,31,36,1,0,0,0,0,64,0,-1--1--1,,1|(798,972)|
+10,54,"RT Policy 1: ASAP to 75",1210,608,71,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,55,31,54,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,56,54,13,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,57,"RT Policy 3: Kunduz proposal Stock",2197,919,76,36,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,58,48,1881,921,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,59,61,57,4,0,0,22,0,0,0,-1--1--1,,1|(2060,921)|
+1,60,61,58,100,0,0,22,0,0,0,-1--1--1,,1|(1946,921)|
+11,61,0,1993,921,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,62,increase in RT policy 3,1993,952,56,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,63,57,62,1,0,0,0,0,128,0,-1--1--1,,1|(2105,1002)|
+1,64,26,62,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,65,"RT Policy 3: Kunduz proposal",1784,609,72,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,66,57,65,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,67,65,13,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,68,"RT Policy 2: ASAP to 75 with 6 months increase Stock",1478,1073,105,43,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,69,48,1122,1078,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,70,72,68,4,0,0,22,0,0,0,-1--1--1,,1|(1313,1078)|
+1,71,72,69,100,0,0,22,0,0,0,-1--1--1,,1|(1194,1078)|
+11,72,0,1247,1078,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,73,increase in RT policy 2,1247,1109,56,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,74,yearly trigger,1793,1004,62,11,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,75,74,62,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,76,RT at 2020,2259,771,52,13,8,2,0,23,-1,0,0,0,128-128-128,192-192-192,||B|128-128-128,0,0,0,0,0,0
+1,77,76,57,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+1,78,51,13,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,79,68,51,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,80,yearly trigger,1247,1348,62,11,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,81,80,73,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,82,max retirement age,1092,1168,67,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,83,82,73,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,84,68,73,1,0,0,0,0,128,0,-1--1--1,,1|(1344,1145)|
+10,85,RT at 2020,1568,925,52,13,8,2,0,23,-1,0,0,0,128-128-128,192-192-192,||B|128-128-128,0,0,0,0,0,0
+1,86,85,68,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,87,"RT Policy 4: Kunduz proposal with 6 months increase",1823,354,100,34,8,131,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,88,87,13,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,89,"RT Policy 4: Kunduz proposal with 6 months increase Stock",2474,353,131,42,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,90,48,2468,623,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,91,93,89,4,0,0,22,0,0,0,-1--1--1,,1|(2468,449)|
+1,92,93,90,100,0,0,22,0,0,0,-1--1--1,,1|(2468,561)|
+11,93,0,2468,509,8,6,33,3,0,0,4,0,0,0,0,0,0,0,0,0
+10,94,increase in RT policy 4,2532,509,56,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,95,RT at 2020,2512,177,52,13,8,2,0,23,-1,0,0,0,128-128-128,192-192-192,||B|128-128-128,0,0,0,0,0,0
+1,96,95,89,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,97,target age Kunduz proposal,2797,508,78,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,98,97,94,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,99,yearly trigger,2776,577,62,11,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,100,99,94,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,101,89,94,1,0,0,0,0,128,0,-1--1--1,,1|(2540,431)|
+1,102,89,87,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,103,13,1,1,0,0,0,0,128,0,-1--1--1,,1|(1559,293)|
+1,104,13,6,1,0,0,0,0,128,0,-1--1--1,,1|(1539,245)|
+10,105,"already determind retirement age 2020-2030",579,712,74,34,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,106,Time,579,550,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,107,106,105,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+1,108,105,36,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,109,106,36,1,0,0,0,0,128,0,-1--1--1,,1|(720,736)|
+10,110,"already determind retirement age 2020-2030",1175,992,79,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,111,"already determind retirement age 2020-2030",1851,833,79,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,112,"already determind retirement age 2020-2030",2326,584,79,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,113,110,73,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,114,111,62,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,115,112,94,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,116,Time,1143,1257,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,117,116,73,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,118,Time,2058,1085,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,119,118,62,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,120,Time,2531,648,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,121,120,94,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,122,Retirement age policies,1591,-151,373,142,8,131,0,10,0,0,0,0,-1--1--1,0-0-0,|72||0-0-255,0,0,0,0,0,0
+10,123,"3 months per year",1863,1103,54,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,124,123,62,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,125,"6 months per year",2722,724,54,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,126,125,94,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,127,"3 months per year",857,1203,59,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,128,127,36,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,129,"6 months per year",1490,1283,59,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,130,129,73,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,131,"RT Policy 0: Following current trend",1188,354,75,34,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,132,"RT Policy 0: Following current trend Stock",845,353,84,39,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+1,133,132,131,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,134,RT at 2020,731,192,50,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,135,134,132,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+12,136,48,500,348,0,0,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,137,139,132,4,0,0,22,0,0,0,-1--1--1,,1|(698,348)|
+1,138,139,136,100,0,0,22,0,0,0,-1--1--1,,1|(562,348)|
+11,139,0,630,348,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,140,Increase in RT policy 0,630,379,56,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,141,105,140,1,0,0,0,0,128,0,-1--1--1,,1|(430,504)|
+10,142,yearly trigger,224,377,62,11,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,143,142,140,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,144,132,140,1,0,0,0,0,128,0,-1--1--1,,1|(728,416)|
+10,145,current retirement trend,342,257,68,23,8,3,0,4,-1,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,146,145,140,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,147,Time,735,509,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,148,147,140,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,149,max retirement age,548,203,67,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,150,149,140,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,151,131,13,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+\\\---/// Sketch information - do not modify anything except names
+V300  Do not put anything below this section - it will be ignored
+*Migration policies
+$192-192-192,0,Vensim Sans|12||0-0-0|0-0-0|0-0-255|255-255-255|255-255-255|96,96,56,2
+10,1,lookup no migration,1920,621,41,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,2,"M Policy 4: Increasing migration male",2107,1472,90,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,3,Policy Switch Migration,2333,706,64,64,2,131,0,20,0,0,0,0,-1--1--1,0-255-0,||B|0-0-0,0,0,0,0,0,0
+10,4,Migration policy outcome male,2462,1147,64,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,5,"M Policy 5: Adapting migration male",2107,1694,85,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,6,"T Policy 1: Target all ages",2921,1056,70,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,7,"T Policy 2: Target only working age migrants",2927,1145,92,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,8,Policy Switch Targeting ages in migration,2690,706,67,67,2,131,0,20,0,0,0,0,-1--1--1,0-255-0,||B|0-0-0,0,0,0,0,0,0
+10,9,male age groups,2462,1434,41,23,8,2,2,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,10,decreasing factor migration policy 2,1717,825,71,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,11,male age groups,1349,1127,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,12,"M Policy 3: Constant migration male",2107,1224,85,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,13,"M Policy 2: Decreasing migration Stock male",1554,940,77,37,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+10,14,net migration in 2020 male,1553,1223,69,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,15,11,14,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,16,14,13,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+12,17,48,1767,874,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,18,20,17,4,0,0,22,0,0,0,-1--1--1,,1|(1767,940)|
+1,19,20,13,100,0,0,22,0,0,0,-1--1--1,,1|(1671,940)|
+11,20,0,1718,940,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,21,"M Policy 2: Migration ouflow male",1718,971,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,22,10,21,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,23,"M Policy 2: Decreasing migration male",2106,1039,91,34,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,24,13,23,1,0,0,0,0,128,0,-1--1--1,,1|(1920,1048)|
+10,25,"M Policy 4: Increasing migration Stock male",1553,1471,75,38,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,26,48,1309,1463,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,27,29,25,4,0,0,22,0,0,0,-1--1--1,,1|(1436,1463)|
+1,28,29,26,100,0,0,22,0,0,0,-1--1--1,,1|(1358,1463)|
+11,29,0,1388,1463,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,30,"M Policy 4: Migration inflow male",1388,1494,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,31,14,12,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,32,14,25,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,33,increasing factor migration policy 4,1387,1594,71,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,34,33,30,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,35,25,30,1,0,0,0,0,128,0,-1--1--1,,1|(1427,1422)|
+1,36,25,2,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,37,"M 2 Policy: Goal of migration numbers male",1385,844,99,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,38,"M 4 Policy: Goal of migration numbers male",1165,1493,99,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,39,M 2 Policy Goal lower percentage,1384,761,70,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,40,net migration in 2020 male,1541,761,69,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,41,40,37,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,42,39,37,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,43,37,21,1,0,0,0,0,128,0,-1--1--1,,1|(1582,865)|
+1,44,13,21,1,0,0,0,0,128,0,-1--1--1,,1|(1658,892)|
+10,45,M 4 Policy Goal higher percentage,959,1407,73,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,46,45,38,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,47,net migration in 2020 male,947,1493,69,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,48,47,38,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,49,38,30,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,50,23,4,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,51,12,4,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,52,2,4,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,53,3,4,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,54,male age groups,2098,618,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,55,"M Policy 1: No migration male",2099,865,66,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,56,54,55,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,57,1,55,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,58,55,4,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,59,labour balance on migration coefficient,1542,2135,82,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+10,60,"M Policy 5: Adapting migration Stock male",1554,1816,73,39,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,61,48,1265,1813,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,62,64,60,4,0,0,22,0,0,0,-1--1--1,,1|(1430,1813)|
+1,63,64,61,100,0,0,22,0,0,0,-1--1--1,,1|(1328,1813)|
+11,64,0,1373,1813,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,65,"M Policy 5: Migration inflow male",1373,1844,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,66,48,1842,1815,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,67,69,66,4,0,0,22,0,0,0,-1--1--1,,1|(1778,1815)|
+1,68,69,60,100,0,0,22,0,0,0,-1--1--1,,1|(1677,1815)|
+11,69,0,1734,1815,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,70,"M Policy 5: Migration ouflow male",1734,1846,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,71,14,60,1,0,0,0,0,128,1,-1--1--1,,1|(1708,1486)|
+1,72,60,5,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,73,59,65,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,74,59,70,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,75,5,4,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,76,"T Policy 3: Target workers of specific age",2928,1244,95,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,77,male working age boolean,3209,1144,74,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,78,77,7,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,79,"T policy 3: Starting age",3208,1244,48,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,80,"T Policy 3: Ending age",3208,1350,44,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,81,79,76,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,82,80,76,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,83,male age groups,3213,1493,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,84,83,76,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,85,Target policy outcome male,2598,1145,58,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,86,8,85,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,87,6,85,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,88,7,85,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,89,76,85,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,90,net migration male,2533,1370,55,23,8,3,0,4,0,0,0,0,-1--1--1,0-255-0,|||0-0-0,0,0,0,0,0,0
+1,91,4,90,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,92,85,90,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,93,Total labour balance,1546,2022,52,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,94,93,65,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+1,95,93,70,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,96,starting year of migration policy,2619,1580,65,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,97,96,90,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,98,Time,2470,1572,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,99,98,90,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,100,delay factor adapting migration policy,1542,2284,84,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||0-0-0,0,0,0,0,0,0
+1,101,100,65,1,0,0,0,0,128,0,-1--1--1,,1|(1395,2061)|
+1,102,100,70,1,0,0,0,0,128,0,-1--1--1,,1|(1699,2061)|
+10,103,Total net migration male per age,2882,1882,64,34,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,104,48,2601,1874,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,105,107,103,4,0,0,22,0,0,0,-1--1--1,,1|(2766,1874)|
+1,106,107,104,68,0,0,22,2,0,0,-1--1--1,|||0-0-0,1|(2664,1874)|
+11,107,0,2709,1874,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,108,Increase in total net migration male per year,2709,1905,96,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,109,90,108,1,0,0,0,0,128,0,-1--1--1,,1|(2758,1674)|
+10,110,init total net migration male,2902,1737,66,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,111,110,103,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,112,total net migration male,3006,2081,61,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,113,103,112,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,114,lookup net migration in 2020 male,1295,1221,84,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,115,114,14,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,116,lookup net migration in 2020 female,3792,1223,84,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,117,"M Policy 4: Increasing migration female",4666,1473,90,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,118,Migration policy outcome female,5021,1148,65,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,119,"M Policy 5: Adapting migration female",4666,1695,85,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,120,male age groups,4158,1128,41,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,121,"M Policy 3: Constant migration female",4666,1225,85,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,122,"M Policy 2: Decreasing migration Stock female",4113,941,77,37,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+10,123,net migration in 2020 female,4112,1224,69,23,8,3,0,20,0,0,0,0,-1--1--1,192-192-192,||B|0-0-0,0,0,0,0,0,0
+1,124,123,122,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+12,125,48,4326,875,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,126,128,125,4,0,0,22,0,0,0,-1--1--1,,1|(4326,941)|
+1,127,128,122,100,0,0,22,0,0,0,-1--1--1,,1|(4230,941)|
+11,128,0,4277,941,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,129,"M Policy 2: Migration ouflow female",4277,972,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,130,"M Policy 2: Decreasing migration female",4665,1040,93,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,131,122,130,1,0,0,0,0,128,0,-1--1--1,,1|(4479,1049)|
+10,132,"M Policy 4: Increasing migration Stock female",4112,1472,75,38,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,133,48,3868,1464,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,134,136,132,4,0,0,22,0,0,0,-1--1--1,,1|(3995,1464)|
+1,135,136,133,100,0,0,22,0,0,0,-1--1--1,,1|(3917,1464)|
+11,136,0,3947,1464,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,137,"M Policy 4: Migration inflow female",3947,1495,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,138,123,121,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,139,123,132,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+1,140,132,137,1,0,0,0,0,128,0,-1--1--1,,1|(3986,1423)|
+1,141,132,117,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,142,"M 2 Policy: Goal of migration numbers female",3944,845,78,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,143,"M 4 Policy: Goal of migration numbers female",3724,1494,78,34,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,144,net migration in 2020 female,4100,762,69,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,145,144,142,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,146,142,129,1,0,0,0,0,128,0,-1--1--1,,1|(4141,866)|
+1,147,122,129,1,0,0,0,0,128,0,-1--1--1,,1|(4217,893)|
+10,148,net migration in 2020 female,3506,1494,69,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,149,148,143,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,150,143,137,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,151,130,118,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,152,121,118,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,153,117,118,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,154,male age groups,4913,619,41,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,155,"M Policy 1: No migration female",4656,866,73,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,156,155,118,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,157,"M Policy 5: Adapting migration Stock female",4113,1817,73,39,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,158,48,3824,1814,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,159,161,157,4,0,0,22,0,0,0,-1--1--1,,1|(3989,1814)|
+1,160,161,158,100,0,0,22,0,0,0,-1--1--1,,1|(3887,1814)|
+11,161,0,3932,1814,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,162,"M Policy 5: Migration inflow female",3932,1845,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+12,163,48,4401,1816,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,164,166,163,4,0,0,22,0,0,0,-1--1--1,,1|(4337,1816)|
+1,165,166,157,100,0,0,22,0,0,0,-1--1--1,,1|(4236,1816)|
+11,166,0,4293,1816,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,167,"M Policy 5: Migration ouflow female",4293,1847,82,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,168,123,157,1,0,0,0,0,128,1,-1--1--1,,1|(4267,1485)|
+1,169,157,119,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,170,119,118,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,171,male working age boolean,6018,1145,74,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,172,male age groups,6024,1470,41,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,173,net migration female,5092,1371,55,23,8,3,0,4,0,0,0,0,-1--1--1,0-255-0,|||0-0-0,0,0,0,0,0,0
+1,174,118,173,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,175,Total labour balance,4097,1984,52,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,176,175,162,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+1,177,175,167,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,178,Time,5029,1573,30,13,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,179,178,173,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,180,Total net migration female per age,5439,1880,62,31,3,131,0,0,0,0,0,0,0,0,0,0,0,0
+12,181,48,5160,1875,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,182,184,180,4,0,0,22,0,0,0,-1--1--1,,1|(5325,1875)|
+1,183,184,181,68,0,0,22,2,0,0,-1--1--1,|||0-0-0,1|(5223,1875)|
+11,184,0,5268,1875,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,185,Increase in total net migration female per year,5268,1917,84,34,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,186,173,185,1,0,0,0,0,128,0,-1--1--1,,1|(5317,1675)|
+10,187,init total net migration female,5447,1738,68,23,8,3,0,4,0,0,0,0,-1--1--1,192-192-192,|||0-0-0,0,0,0,0,0,0
+1,188,187,180,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,189,total net migration female,5565,2082,68,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,190,180,189,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,191,116,123,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,192,female age groups,3935,1114,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,193,192,123,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,194,M 2 Policy Goal lower percentage,3945,731,74,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,195,194,142,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,196,female age groups,4655,607,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,197,196,155,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,198,lookup no migration,4479,619,45,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,199,198,155,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,200,increasing factor migration policy 4,3946,1620,76,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,201,200,137,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,202,M 4 Policy Goal higher percentage,3505,1392,78,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,203,202,143,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,204,labour balance on migration coefficient,4105,2061,87,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,205,delay factor adapting migration policy,4111,2177,89,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,206,204,162,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,207,204,167,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,208,205,162,1,0,0,0,0,128,0,-1--1--1,,1|(3960,2027)|
+1,209,205,167,1,0,0,0,0,128,0,-1--1--1,,1|(4258,2025)|
+10,210,Policy Switch Migration,4897,735,56,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,211,210,118,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,212,Policy Switch Targeting ages in migration,5311,765,68,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,213,"T Policy 1: Target all ages",5836,1064,72,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,214,"T Policy 2: Target only working age migrants",5841,1146,91,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,215,"T Policy 3: Ending age",6122,1012,49,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,216,"T Policy 3: Target workers of specific age",5841,1246,95,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,217,starting year of migration policy,5178,1572,69,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,218,217,173,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,219,female working age boolean,3203,1066,66,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,220,female age groups,3213,1426,48,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,221,male working age boolean,6637,1098,74,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,222,male age groups,6641,1447,41,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,223,female working age boolean,6631,1020,66,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,224,female age groups,6641,1380,48,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,225,"1T Policy 1: Target all ages",5520,1052,75,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,226,"1T Policy 2: Target only working age migrants",5516,1141,95,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,227,"1T Policy 3: Target workers of specific age",5528,1235,95,23,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,228,male working age boolean,6058,1156,74,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,229,male age groups,6062,1505,41,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,230,female working age boolean,5827,1139,66,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,231,230,226,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,232,female age groups,5834,1473,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,233,232,227,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,234,"T Policy 3: Ending age",5836,1324,49,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,235,"T policy 3: Starting age",5820,1240,53,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,236,235,227,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,237,234,227,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,238,Target policy outcome female,5175,1141,65,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,239,212,238,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,240,225,238,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,241,226,238,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,242,227,238,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,243,238,173,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,244,total net migration,3300,2827,40,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,245,total net migration male,3138,2730,66,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,246,total net migration,4148,2453,44,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,247,245,244,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,248,total net migration female,3458,2736,73,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,249,248,244,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,250,"M Policy 6: Male migration with maximum",2112,1921,67,34,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,251,250,4,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,252,MAX number of males in policy 6,1874,2477,66,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,253,"male net migration=max number of males in M Policy 6",1875,2323,97,34,8,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,254,253,250,1,0,0,0,0,64,0,-1--1--1,,1|(2054,2150)|
+10,255,lookup factors net migration per age male,2164,2322,93,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,256,255,253,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,257,252,253,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,258,male age groups,2164,2459,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,259,258,253,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,260,total male migration check per year,2547,2081,81,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,261,108,260,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,262,"M Policy 6: Female migration with maximum",4676,1925,77,34,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,263,MAX number of females in policy 6,4438,2468,73,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,264,"female net migration=max number of females in M Policy 6",4439,2327,105,34,8,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,265,264,262,1,0,0,0,0,64,0,-1--1--1,,1|(4618,2154)|
+10,266,lookup factors net migration per age female,4728,2326,100,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,267,266,264,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,268,263,264,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,269,male age groups,4978,2463,41,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,270,female age groups,4710,2470,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,271,270,264,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,272,262,118,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,273,total female migration check per year,5106,2096,89,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,274,185,273,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,275,decreasing factor migration policy 2,4299,805,76,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,276,275,129,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,277,lookup factors net migration per age male,1213,1981,97,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,278,277,65,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,279,male age groups,1187,1909,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,280,279,65,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+1,281,255,70,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,282,male age groups,1926,1936,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,283,282,70,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,284,female age groups,3656,1913,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,285,284,162,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,286,lookup factors net migration per age female,3727,2004,78,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,287,286,162,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,288,female age groups,4501,1943,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,289,288,167,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+1,290,266,167,0,0,0,0,0,64,0,-1--1--1,,1|(0,0)|
+10,291,Migration policies,3386,572,438,124,8,131,0,10,0,0,0,0,-1--1--1,0-0-0,|72||0-0-255,0,0,0,0,0,0
+10,292,total Average FTE per male,1549,1931,69,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,293,292,65,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,294,total Average FTE per female,4098,1915,69,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,295,294,162,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,296,294,167,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,297,292,70,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,298,male emigration number,3156,3041,66,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+10,299,male age groups,2906,2891,41,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,300,299,298,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,301,lookup male emigration,2906,3039,49,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+1,302,301,298,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,303,female age groups,3585,2890,48,23,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,304,lookup female emigration,3591,3024,57,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,305,female emigration number,3878,3025,73,23,8,3,0,0,0,0,0,0,0,0,0,0,0,0
+1,306,303,305,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,307,304,305,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+\\\---/// Sketch information - do not modify anything except names
+V300  Do not put anything below this section - it will be ignored
+*Wages policies
+$192-192-192,0,Vensim Sans|12||0-0-0|0-0-0|0-0-255|255-255-255|255-255-255|96,96,78,2
+10,1,exogenous trend in wages in Industry,330,520,78,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,||B|255-0-0,0,0,0,0,0,0
+10,2,exogenous trend in wages in Service,329,437,78,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,||B|255-0-0,0,0,0,0,0,0
+10,3,Policy Switch Wages scenario's,614,44,62,62,2,131,0,20,0,0,0,0,-1--1--1,0-255-0,||B|0-0-0,0,0,0,0,0,0
+10,4,labour balance and wages coefficient,631,614,77,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+10,5,Wages,1020,153,75,40,3,131,0,4,0,0,0,0,-1--1--1,0-255-0,|||0-0-0,0,0,0,0,0,0
+12,6,48,745,153,25,15,0,3,0,0,-1,0,0,0,0,0,0,0,0,0
+1,7,9,5,4,0,0,22,0,0,0,-1--1--1,,1|(898,153)|
+1,8,9,6,100,0,0,22,0,0,0,-1--1--1,,1|(804,153)|
+11,9,0,845,153,6,8,34,3,0,0,1,0,0,0,0,0,0,0,0,0
+10,10,increase in wages,845,184,44,23,40,3,0,0,-1,0,0,0,0,0,0,0,0,0
+10,11,init wages per sector,1073,27,63,26,8,131,0,20,0,0,0,0,-1--1--1,192-192-192,||B|255-0-0,0,0,0,0,0,0
+1,12,11,5,0,0,0,0,0,128,1,-1--1--1,,1|(0,0)|
+10,13,Labour balance,310,543,36,23,8,2,1,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+10,14,distribution wages scenario coefficient,1444,440,78,23,8,3,0,4,0,0,0,0,-1--1--1,192-255-192,|||0-0-0,0,0,0,0,0,0
+10,15,"W Policy 2: Wages dependant on labour balance",844,439,89,34,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,16,"W Policy 1: Wages dependant on exogenous trend",566,439,73,34,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+10,17,"W Policy 3: Wages dependant on LB and Exo. trend",1111,441,90,34,8,3,0,22,0,0,0,0,-1--1--1,0-128-0,||B|255-255-255,0,0,0,0,0,0
+1,18,2,16,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,19,1,16,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,20,16,17,1,0,0,0,0,128,0,-1--1--1,,1|(832,361)|
+1,21,4,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,22,14,17,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,23,16,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,24,17,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,25,3,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,26,Wages policies,839,-136,342,69,8,3,0,10,0,0,0,0,-1--1--1,0-0-0,|72||0-0-255,0,0,0,0,0,0
+10,27,"Need for labour - relative difference between potential and actual workforce",844,614,114,34,8,2,0,3,-1,0,0,0,128-128-128,0-0-0,|||128-128-128,0,0,0,0,0,0
+1,28,15,10,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+10,29,coefficient to increase the relative effect between sectors,1078,615,103,34,8,3,0,4,0,0,0,0,-1--1--1,192-255-255,|||255-0-0,0,0,0,0,0,0
+1,30,29,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,31,27,15,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+1,32,15,17,0,0,0,0,0,128,0,-1--1--1,,1|(0,0)|
+///---\\\
+:L<%^E!@
+1:testrun.vdfx
+4:Time
+5:Scenario Switch GDP scenario's
+6:fage15
+6:fage20
+6:fage21
+6:fage22
+6:fage23
+6:fage24
+6:fage25
+6:fage26
+6:fage27
+6:fage28
+6:fage29
+6:fage30
+6:fage31
+6:fage32
+6:fage33
+6:fage34
+6:fage35
+6:fage36
+6:fage37
+6:fage38
+6:fage39
+6:fage40
+6:fage41
+6:fage42
+6:fage43
+6:fage44
+6:fage45
+6:fage46
+6:fage47
+6:fage48
+6:fage49
+6:fage50
+6:fage51
+6:fage52
+6:fage53
+6:fage54
+6:fage55
+6:fage96
+6:Industry sector
+6:mage0
+6:mage1
+6:mage10
+6:mage100
+6:mage104
+6:mage15
+6:mage20
+6:mage30
+6:mage40
+6:mage50
+6:mage74
+6:mage75
+6:mage76
+6:mage77
+6:mage78
+6:mage80
+6:mage85
+6:mage90
+6:mage95
+6:Service sector
+9:testrun
+19:92,2
+24:2020
+25:2070
+26:2070
+18:Merijn_Simulation_model8.0 voor workforce aanpassen.vsc
+20:Merijn_Simulation_model8.0 voor workforce aanpassen.lst
+15:0,0,0,0,0,0
+27:0,
+34:0,
+42:1
+72:0
+73:0
+35:Date
+36:YYYY-MM-DD
+37:2020
+38:1
+39:1
+40:0
+41:0
+95:0
+96:0
+97:0
+77:0
+78:0
+102:0
+93:0
+94:0
+92:0
+91:0
+90:0
+87:0
+75:
+43:
+103:8,8,8,3,8
+105:0,0,0,0,0,0,0,0,0,0
+104:Arial Unicode MS|12||0-0-0|0-0-0|-1--1--1|0-0-255|192-192-192|-1--1--1
